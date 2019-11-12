@@ -168,3 +168,14 @@ kernel void transpose_lmem(
 		T[r_T*ncols_T + c_T] = cache[get_local_id(0)*(local_size+1) + get_local_id(1)];
 }
 
+
+kernel void transpose_lmem_vect(
+	global int4 * restrict T,
+	global const int4 * restrict A,
+	int nrows_T, int ncols_T,
+	local int4 * restrict cache)
+	)
+{
+		
+}
+
