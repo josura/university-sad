@@ -135,3 +135,36 @@ kernel void transpose8(
 	T[ (8*r8_T + 6)*nvcols_T + c8_T ] = w6;
 	T[ (8*r8_T + 7)*nvcols_T + c8_T ] = w7;
 }
+
+/* Requirements:
+   * square work-group size (lxl)
+   * cache sized as l*l*sizeof(cl_int)
+*/
+kernel void transpose_lmem(
+	global int * restrict T,
+	global const int * restrict A,
+	int nrows_T, int ncols_T,
+	local int * restrict cache)
+{
+	const int local_size = get_local_size(0); // or get_local_size(1), which should be the same
+	const int block_row_T = get_group_id(1);
+	const int block_col_T = get_group_id(0);
+	const int block_row_A = block_col_T;
+	const int block_col_A = block_row_T;
+
+	const int r_A = block_row_A*local_size + get_local_id(1);
+	const int c_A = block_col_A*local_size + get_local_id(0);
+	const int ncols_A = nrows_T;
+
+	if (c_A < ncols_A && r_A < ncols_T)
+		cache[get_local_id(1)*(local_size+1) + get_local_id(0)] = A[r_A*ncols_A  +  c_A];
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	const int r_T = get_global_id(1); // get_group_id(1)*get_local_size(1)+get_local_id(1)
+	const int c_T = get_global_id(0); // get_group_id(0)*get_local_size(0)+get_local_id(0)
+
+	if (c_T < ncols_T && r_T < nrows_T)
+		T[r_T*ncols_T + c_T] = cache[get_local_id(0)*(local_size+1) + get_local_id(1)];
+}
+
