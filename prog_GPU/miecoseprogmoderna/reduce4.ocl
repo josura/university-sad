@@ -1,0 +1,88 @@
+kernel void vecinit(global int *out, int n)
+{
+	const int i = get_global_id(0);
+	if (i < n)
+	out[i] = (i+1);
+}
+
+kernel void reduce4(global int * restrict out,
+	global const int4 * restrict in, int nquarts)
+{
+	int i = get_global_id(0);
+	if (i >= nquarts) return;
+	int4 v = in[i];
+	out[i] = (v.x + v.y) + (v.z + v.w);
+}
+
+/*
+   0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 ...
+   \- 0 -/ \- 1 -/ \-- 2 --/ \--- 3 ---/ \--- 0 ---/ \--- 1 ---/ \--- 2 ---/ \--- 3 ---/ ...
+ */
+kernel void reduce4x4(global int * restrict out,
+	global const int4 * restrict in, int nhex)
+{
+	int i = get_global_id(0);
+	int gws = get_global_size(0);
+	if (i >= nhex) return;
+	int4 v0 = in[i + 0*gws];
+	int4 v1 = in[i + 1*gws];
+	int4 v2 = in[i + 2*gws];
+	int4 v3 = in[i + 3*gws];
+
+#if 1
+	int4 v = (v0 + v1) + (v2 + v3);
+	out[i] = (v.x + v.y) + (v.z + v.w);
+#else
+	int r0 = (v0.x + v0.y) + (v0.z + v0.w);
+	int r1 = (v1.x + v1.y) + (v1.z + v1.w);
+	int r2 = (v2.x + v2.y) + (v2.z + v2.w);
+	int r3 = (v3.x + v3.y) + (v3.z + v3.w);
+
+	out[i] = (r0 + r1) + (r2 + r3);
+#endif
+}
+
+kernel void reduce4_sat(global int * restrict out,
+	global const int4 * restrict in, int nquarts)
+{
+	const int gws = get_global_size(0);
+	int i = get_global_id(0);
+	int acc = 0;
+	while (i < nquarts) {
+		int4 v = in[i];
+		acc += (v.x + v.y) + (v.z + v.w);
+		i += gws;
+	}
+	out[get_global_id(0)] = acc;
+}
+
+kernel void reduce4_sat_lmem(global int * restrict out,
+	global const int4 * restrict in,
+	local int * restrict lmem, int nquarts)
+{
+	const int gws = get_global_size(0);
+	int i = get_global_id(0);
+	int acc = 0;
+	while (i < nquarts) {
+		int4 v = in[i];
+		acc += (v.x + v.y) + (v.z + v.w);
+		i += gws;
+	}
+	int li = get_local_id(0);
+
+        lmem[li] = acc;
+
+        for (int item_addizionatori = (get_local_size(0))/2; item_addizionatori >= 1; item_addizionatori /= 2) {
+
+                if (li < item_addizionatori)  {
+                        acc += lmem[li + item_addizionatori];      //sommiamo all'accumulatore l'elemento che corrisponde alla traslazione ...
+                        lmem[li] = acc;
+                } else return;
+                barrier(CLK_LOCAL_MEM_FENCE);     //attendiamo che tutte le operazioni dei work item si concludano
+        }
+
+	if( li==0 ) out[ get_global_id(0) ] = acc;  //mandiamo in output solo la somma totale
+}
+
+
+
