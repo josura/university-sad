@@ -1,0 +1,54 @@
+kernel void vecinit(global int *out, int n)
+{
+	const int i = get_global_id(0);
+	if (i < n)
+	out[i] = (i+1);
+}
+
+kernel void scan_lmem(global int * restrict out,
+	global const int * restrict in,
+	local int * restrict lmem, /* one element per work-item */
+	uint nels)
+{
+	const uint gws = get_global_size(0);
+	const uint lws = get_local_size(0);
+	const uint li = get_local_id(0);
+
+	const uint limit = ((nels + lws - 1)/lws)*lws;
+
+	uint gi = get_global_id(0);
+	int corr = 0;
+
+	while (gi < limit) {
+		int acc = (gi < nels ? in[gi] : 0);
+
+		uint write_mask = 1U;
+		uint read_mask = ~0U;
+
+		lmem[li] = acc;
+		while (write_mask < lws) {
+			barrier(CLK_LOCAL_MEM_FENCE);
+
+			if (li & write_mask) {
+				acc += lmem[(li & read_mask) - 1];
+				lmem[li] = acc;
+			}
+			write_mask <<= 1;
+			read_mask <<= 1;
+		}
+
+		acc += corr;
+		if (gi < nels)
+			out[gi] = acc;
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+		corr += lmem[lws - 1];
+		gi += get_local_size(0);
+
+		// ensure that lmem[i] on the next cycle
+		// from the last work-item does not
+		// overwrite lmem[lws-1] before all other
+		// work-item read it
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+}
