@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <unistd.h>
 
 #define BUFSIZE 4096
 
@@ -155,9 +156,11 @@ cl_context create_context(cl_platform_id p, cl_device_id d)
 cl_command_queue create_queue(cl_context ctx, cl_device_id d)
 {
 	cl_int err;
-
-	cl_command_queue que = clCreateCommandQueue(ctx, d,
-		CL_QUEUE_PROFILING_ENABLE, &err);
+	const cl_queue_properties prop[]={CL_QUEUE_PROPERTIES,
+		CL_QUEUE_PROFILING_ENABLE, 
+		0};
+	cl_command_queue que = clCreateCommandQueueWithProperties(ctx, d,
+		prop, &err);
 	ocl_check(err, "create queue");
 	return que;
 }

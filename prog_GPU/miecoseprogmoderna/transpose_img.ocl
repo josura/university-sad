@@ -78,16 +78,11 @@ kernel void transpose_img_vect(
 		read_imagei(I, (int2)(c_quart_A*4+2, r_quart_A*4+3)).x,
 		read_imagei(I, (int2)(c_quart_A*4+3, r_quart_A*4+3)).x);	
 	
-	const int4 w0 = (int4)(v0.s0, v1.s0, v2.s0, v3.s0);
-	const int4 w1 = (int4)(v0.s1, v1.s1, v2.s1, v3.s1);
-	const int4 w2 = (int4)(v0.s2, v1.s2, v2.s2, v3.s2);
-	const int4 w3 = (int4)(v0.s3, v1.s3, v2.s3, v3.s3);
 
-
-	T[ (4*r_quart_T+0)*(ncols_T/4) + c_quart_T ] =w0; 
-	T[ (4*r_quart_T+1)*(ncols_T/4) + c_quart_T ] =w1; 
-	T[ (4*r_quart_T+2)*(ncols_T/4) + c_quart_T ] =w2; 
-	T[ (4*r_quart_T+3)*(ncols_T/4) + c_quart_T ] =w3; 
+	T[ (4*r_quart_T+0)*(ncols_T/4) + c_quart_T ] =(int4)(v0.s0, v1.s0, v2.s0, v3.s0); 
+	T[ (4*r_quart_T+1)*(ncols_T/4) + c_quart_T ] =(int4)(v0.s1, v1.s1, v2.s1, v3.s1); 
+	T[ (4*r_quart_T+2)*(ncols_T/4) + c_quart_T ] =(int4)(v0.s2, v1.s2, v2.s2, v3.s2); 
+	T[ (4*r_quart_T+3)*(ncols_T/4) + c_quart_T ] =(int4)(v0.s3, v1.s3, v2.s3, v3.s3); 
 	
 	
 }
