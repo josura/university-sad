@@ -289,12 +289,15 @@ kernel void local_miosort_lmem(global int * restrict arr,int nels, local int* lm
 	const uint end=(start+(lws<<1)>nels ? nels : start+(lws<<1));
 	const uint el_lws = end-start ;
 	const int li=get_local_id(0);
-	lmem[li<<1]=arr[gi<<1];
-	lmem[(li<<1)+1]=arr[(gi<<1)+1];
+	const uint arr_local_index = li << 1;
+	const uint arr_global_index = gi << 1;
+	lmem[arr_local_index]=arr[arr_global_index];
+	lmem[(arr_local_index)+1]=arr[(arr_global_index)+1];
 	barrier(CLK_LOCAL_MEM_FENCE);
 	//if(li==0)printf("block_id %i local_item %i start %i end %i\n",groupid,li,start,end);
+//#pragma unroll
 	for(int i=0;i<lws;i++){
-		int indexin=( (li<<1)+1 >= el_lws ? 0 : li<<1) ;
+		int indexin=( (arr_local_index)+1 >= el_lws ? 0 : arr_local_index) ;
 		int indexfin=indexin+1;
 		//printf("local indexin %i e local indexfin %i del workitem %i\n",indexin,indexfin,gi);
 		if(lmem[indexin]>lmem[indexfin]){
@@ -314,6 +317,6 @@ kernel void local_miosort_lmem(global int * restrict arr,int nels, local int* lm
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 	}
-	arr[gi<<1]=lmem[li<<1];
-	arr[(gi<<1)+1]=lmem[(li<<1)+1];
+	arr[arr_global_index]=lmem[arr_local_index];
+	arr[(arr_global_index)+1]=lmem[(arr_local_index)+1];
 }
