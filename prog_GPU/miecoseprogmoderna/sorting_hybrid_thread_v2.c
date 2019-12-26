@@ -273,6 +273,78 @@ int hybrid_sort(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	
 }
 
+int hybrid_sort_v2(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
+	cl_mem d_Sort, cl_int nels, cl_event init_evt, cl_int ** pointerto_h_Sort)
+{	
+	unsigned int memsize = nels * sizeof(cl_int);
+	pthread_t threads_sorting[NUM_THREADS];
+	 cl_event sort_evt, read_evt;
+	int lws = _lws<<1;
+	sort_evt = sortparallel(sortinit_k, _lws, que, d_Sort,  nels ,init_evt);
+	int err;
+	cl_int * h_Sort;
+        *pointerto_h_Sort = h_Sort = clEnqueueMapBuffer(que, d_Sort, CL_FALSE,
+                CL_MAP_READ,
+                0, memsize,
+                1, &sort_evt, &read_evt, &err);
+	ocl_check(err,"map buffer");
+        clWaitForEvents(1, &read_evt);
+	int start[NUM_THREADS];
+	int end[NUM_THREADS];
+	int sottoelementi = nels/NUM_THREADS;
+	int currstart=0;
+	threadargs argums[NUM_THREADS];
+	//sorting using various threads, not enough
+	for(int i =0; i < NUM_THREADS; i++){
+		start[i]=currstart;
+		end[i]=((currstart+sottoelementi) < nels ? (currstart+sottoelementi) : nels);
+		currstart+=sottoelementi;
+		argums[i] = (threadargs){.arr = h_Sort, .start = start[i], .end = end[i] , .lws = lws, .nels= nels};
+	}
+	clock_t begin=clock();
+	for(int i = 0; i< NUM_THREADS;i++){
+		pthread_create(&(threads_sorting[i]),NULL,mergeSortLocalThread,argums+i);	
+	}
+	for(int i = 0; i< NUM_THREADS;i++){
+		pthread_join(threads_sorting[i],NULL);	
+	}
+	//sorting final sequence
+	currstart=0;
+	for(int i =0; i < 2; i++){
+		start[i]=currstart;
+		end[i]=((currstart+ nels/2) < nels ? (currstart + nels/2) : nels);
+		currstart+=nels/2;
+		argums[i] = (threadargs){.arr = h_Sort, .start = start[i], .end = end[i] , .lws = lws, .nels= nels};
+	}
+	
+	for(int i = 0; i< 2;i++){
+		pthread_create(&(threads_sorting[i]),NULL,mergeSortLocalThread,argums+i);	
+	}
+	for(int i = 0; i< 2;i++){
+		pthread_join(threads_sorting[i],NULL);	
+	}
+	
+	mergeSortLocal(h_Sort,nels,nels/2);
+	clock_t ending=clock();
+
+	double exectime=((double)(ending-begin)/CLOCKS_PER_SEC)*1000;
+
+	const double runtime_sort_ms = runtime_ms(sort_evt);
+	const double runtime_read_ms = runtime_ms(read_evt);
+	const double sort_bw_gbs = (sizeof(cl_int))*memsize/1.0e6/runtime_sort_ms;
+	const double read_bw_gbs = sizeof(float)/1.0e6/runtime_read_ms;
+	printf("sort: %d int in %gms: %g GB/s %g GE/s\n",
+		nels, runtime_sort_ms, sort_bw_gbs, nels/1.0e6/runtime_sort_ms);
+	printf("sort_local_host: %d int in %gms: %g GB/s %g GE/s\n",
+		nels, exectime, sort_bw_gbs, nels/1.0e6/runtime_sort_ms);
+	printf("read: %d int in %gms: %g GB/s %g GE/s\n",
+		nels, runtime_read_ms, read_bw_gbs, nels/1.0e6/runtime_read_ms);
+	return (exectime + runtime_sort_ms);
+
+	
+}
+
+
 void verify(int * arr, unsigned int nels){
 	for(int i=0;i<nels;i++){
 		if(arr[i]!=i+1){

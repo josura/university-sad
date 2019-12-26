@@ -1,13 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
-#include <pthread.h>
 
 #define CL_TARGET_OPENCL_VERSION 120
 #include "ocl_boiler.h"
 
 #define min(a,b) a>b ? b : a
-#define NUM_THREADS 4
 
 void merge(int arr[], int l, int m, int r); 
   
@@ -25,7 +23,8 @@ double mergeSortLocal(int arr[], int n, int lws)
    for (curr_size=lws; curr_size<=n-1; curr_size = 2*curr_size) 
    { 
        // Pick starting point of different subarrays of current size 
-       for (left_start=0; left_start<n-1; left_start += 2*curr_size) 
+#pragma omp parallel for 
+	for (left_start=0; left_start<n-1; left_start += 2*curr_size) 
        { 
            // Find ending point of left subarray. mid+1 is starting  
            // point of right 
@@ -38,7 +37,7 @@ double mergeSortLocal(int arr[], int n, int lws)
        } 
    } 
    clock_t end=clock();
-   double exectime=((double)(end-begin)/CLOCKS_PER_SEC)*1000;
+double exectime=(((double)(end)-(double)(begin))/CLOCKS_PER_SEC)*1000;
    return exectime;
 } 
   
@@ -101,8 +100,7 @@ void controlinput(char** argv, int argc){
 	}
 }
 
-void printarr(int* arr,unsigned int nels,const char* str){
-		printf("%s ",str);
+void printarr(int* arr,unsigned int nels){
 		for(int i =0;i < nels;i++){
 			printf("%i ",arr[i]);
 			}
@@ -140,7 +138,7 @@ cl_event vecinit(cl_kernel vecinit_k, cl_command_queue que,
 cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	cl_mem d_v1, cl_int nels, cl_event init_event)
 {
-	const size_t workitem=(nels + 1)/2; 
+	const size_t workitem=nels; 
 	const size_t gws[] = { round_mul_up(workitem, gws_align_init) };
 	const size_t lws[] = { _lws };
 	printf("init gws e workitem : %d | %zu = %zu  %i\n", nels, gws_align_init, gws[0],workitem);
@@ -152,7 +150,7 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	ocl_check(err, "set sortinit arg", i-1);
 	err = clSetKernelArg(sortinit_k, i++, sizeof(nels), &nels);
 	ocl_check(err, "set sortinit arg", i-1);
-	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*_lws*2,NULL);
+	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*_lws,NULL);
 	ocl_check(err, "set sortinit localmemory arg",i-1);
 
 	err = clEnqueueNDRangeKernel(que, sortinit_k, 1,
@@ -164,114 +162,6 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	return sortinit_evt;
 }
 
-typedef struct {
-	int* arr; 
-	int start; 
-	int end;
-	int lws;
-	int nels;
-}threadargs;
-
-/* Iterative mergesort function to sort arr[0...n-1], for threads */
-void *  mergeSortLocalThread(void * args) 
-{ 
-   threadargs * argom =(threadargs*) args;
-   int * arr = argom->arr;
-   int start = argom->start; 
-   int end = argom->end;
-   int lws = argom->lws;
-   int nels = argom->nels;
-   int curr_size;  
-   int left_start;
-   int n =  end - start;
-      for (curr_size=lws; curr_size <= end-start-1; curr_size = 2*curr_size) 
-   { 
-       // Pick starting point of different subarrays of current size 
-       for (left_start = start; left_start < end -1; left_start += 2*curr_size) 
-       { 
-           // Find ending point of left subarray. mid+1 is starting  
-           // point of right 
-           int mid = min(left_start + curr_size - 1, nels-1); 
-  
-           int right_end = min(left_start + 2*curr_size - 1, nels-1); 
-  
-           // Merge Subarrays arr[left_start...mid] & arr[mid+1...right_end] 
-           merge(arr, left_start, mid, right_end); 
-       } 
-   } 
-   pthread_exit(NULL);
-} 
-
-
-
-int hybrid_sort(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
-	cl_mem d_Sort, cl_int nels, cl_event init_evt, cl_int ** pointerto_h_Sort)
-{	
-	unsigned int memsize = nels * sizeof(cl_int);
-	pthread_t threads_sorting[NUM_THREADS];
-	 cl_event sort_evt, read_evt;
-	int lws = _lws<<1;
-	sort_evt = sortparallel(sortinit_k, _lws, que, d_Sort,  nels ,init_evt);
-	int err;
-	cl_int * h_Sort;
-        *pointerto_h_Sort = h_Sort = clEnqueueMapBuffer(que, d_Sort, CL_FALSE,
-                CL_MAP_READ,
-                0, memsize,
-                1, &sort_evt, &read_evt, &err);
-	ocl_check(err,"map buffer");
-        clWaitForEvents(1, &read_evt);
-	int start[NUM_THREADS];
-	int end[NUM_THREADS];
-	int sottoelementi = nels/NUM_THREADS;
-	int currstart=0;
-	threadargs argums[NUM_THREADS];
-	//sorting using various threads, not enough
-	for(int i =0; i < NUM_THREADS; i++){
-		start[i]=currstart;
-		end[i]=((currstart+sottoelementi) < nels ? (currstart+sottoelementi) : nels);
-		currstart+=sottoelementi;
-		argums[i] = (threadargs){.arr = h_Sort, .start = start[i], .end = end[i] , .lws = lws, .nels= nels};
-	}
-	clock_t begin=clock();
-	for(int i = 0; i< NUM_THREADS;i++){
-		pthread_create(&(threads_sorting[i]),NULL,mergeSortLocalThread,argums+i);	
-	}
-	for(int i = 0; i< NUM_THREADS;i++){
-		pthread_join(threads_sorting[i],NULL);	
-	}
-	//sorting final sequence
-	currstart=0;
-	for(int i =0; i < 2; i++){
-		start[i]=currstart;
-		end[i]=((currstart+ nels/2) < nels ? (currstart + nels/2) : nels);
-		currstart+=nels/2;
-		argums[i] = (threadargs){.arr = h_Sort, .start = start[i], .end = end[i] , .lws = lws, .nels= nels};
-	}
-	for(int i = 0; i< 2;i++){
-		pthread_create(&(threads_sorting[i]),NULL,mergeSortLocalThread,argums+i);	
-	}
-	for(int i = 0; i< 2;i++){
-		pthread_join(threads_sorting[i],NULL);	
-	}
-	mergeSortLocal(h_Sort,nels,nels/2);
-	clock_t ending=clock();
-
-	double exectime=((double)(ending-begin)/CLOCKS_PER_SEC)*1000;
-
-	const double runtime_sort_ms = runtime_ms(sort_evt);
-	const double runtime_read_ms = runtime_ms(read_evt);
-	const double sort_bw_gbs = (sizeof(cl_int))*memsize/1.0e6/runtime_sort_ms;
-	const double read_bw_gbs = sizeof(float)/1.0e6/runtime_read_ms;
-	printf("sort: %d int in %gms: %g GB/s %g GE/s\n",
-		nels, runtime_sort_ms, sort_bw_gbs, nels/1.0e6/runtime_sort_ms);
-	printf("sort_local_host: %d int in %gms: %g GB/s %g GE/s\n",
-		nels, exectime, sort_bw_gbs, nels/1.0e6/runtime_sort_ms);
-	printf("read: %d int in %gms: %g GB/s %g GE/s\n",
-		nels, runtime_read_ms, read_bw_gbs, nels/1.0e6/runtime_read_ms);
-	return (exectime + runtime_sort_ms);
-
-	
-}
 
 void verify(int * arr, unsigned int nels){
 	for(int i=0;i<nels;i++){
@@ -297,8 +187,8 @@ int main(int argc,char** argv){
 
 	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit", &err);
 	ocl_check(err, "create kernel vecinit");
-	cl_kernel sort_k = clCreateKernel(prog, "local_miosort_lmem", &err);
-	ocl_check(err, "create kernel miosort");
+	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_lmem", &err);
+	ocl_check(err, "create kernel miocountsort");
 
 
 	/* get information about the preferred work-group size multiple */
@@ -320,24 +210,41 @@ int main(int argc,char** argv){
                 memsize, NULL,
                 &err);
         ocl_check(err, "create buffer d_Sort");
-	cl_event init_evt = vecinit(vecinit_k, que, d_Sort, nels );
-	cl_int * h_Sort= NULL;
-        clWaitForEvents(1, &init_evt);
+
+        cl_event init_evt, sort_evt, read_evt;
+
+        init_evt = vecinit(vecinit_k, que, d_Sort, nels );
+        sort_evt = sortparallel(sort_k, lws, que, d_Sort,  nels ,init_evt);
+
+        cl_int *h_Sort = clEnqueueMapBuffer(que, d_Sort, CL_FALSE,
+                CL_MAP_READ,
+                0, memsize,
+                1, &sort_evt, &read_evt, &err);
+	ocl_check(err,"map buffer");
+        clWaitForEvents(1, &read_evt);
+	//printarr(h_Sort,nels);
+	double time_local_merge = mergeSortLocal(h_Sort,nels,lws);
+	//printarr(h_Sort,nels);
+	verify(h_Sort,nels);
 	const double runtime_init_ms = runtime_ms(init_evt);
-	printf("ci siamo\n");
-	fflush(stdout);
+	const double runtime_sort_ms = runtime_ms(sort_evt);
+	const double runtime_read_ms = runtime_ms(read_evt);
+
 	const double init_bw_gbs = 1.0*memsize/1.0e6/runtime_init_ms;
+	const double sort_bw_gbs = (sizeof(cl_int))*memsize/1.0e6/runtime_sort_ms;
+	const double read_bw_gbs = sizeof(float)/1.0e6/runtime_read_ms;
 
 	printf("init: %d int in %gms: %g GB/s %g GE/s\n",
 		nels, runtime_init_ms, init_bw_gbs, nels/1.0e6/runtime_init_ms);
+	printf("sort: %d int in %gms: %g GB/s %g GE/s\n",
+		nels, runtime_sort_ms, sort_bw_gbs, nels/1.0e6/runtime_sort_ms);
+	printf("sort_local_host: %d int in %gms: %g GB/s %g GE/s\n",
+		nels, time_local_merge, sort_bw_gbs, nels/1.0e6/runtime_sort_ms);
+	printf("read: %d int in %gms: %g GB/s %g GE/s\n",
+		nels, runtime_read_ms, read_bw_gbs, nels/1.0e6/runtime_read_ms);
 
-	const double runtime_total_sort = hybrid_sort(sort_k, lws, que, d_Sort, nels, init_evt, &h_Sort);
-	verify(h_Sort,nels);
-
-	const double sort_bw_gbs = (sizeof(cl_int))*memsize/1.0e6/runtime_total_sort;
-	
 	printf("total_sort: %d int in %gms: %g GB/s %g GE/s\n",
-		nels, runtime_total_sort, sort_bw_gbs, nels/1.0e6/runtime_total_sort);
+		nels, runtime_sort_ms+time_local_merge, sort_bw_gbs, nels/1.0e6/runtime_sort_ms);
 	clReleaseMemObject(d_Sort);
 	clReleaseKernel(sort_k);
 	clReleaseKernel(vecinit_k);

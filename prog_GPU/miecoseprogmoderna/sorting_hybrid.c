@@ -23,7 +23,8 @@ double mergeSortLocal(int arr[], int n, int lws)
    for (curr_size=lws; curr_size<=n-1; curr_size = 2*curr_size) 
    { 
        // Pick starting point of different subarrays of current size 
-       for (left_start=0; left_start<n-1; left_start += 2*curr_size) 
+#pragma omp parallel for 
+	for (left_start=0; left_start<n-1; left_start += 2*curr_size) 
        { 
            // Find ending point of left subarray. mid+1 is starting  
            // point of right 
@@ -36,7 +37,7 @@ double mergeSortLocal(int arr[], int n, int lws)
        } 
    } 
    clock_t end=clock();
-   double exectime=((double)(end-begin)/CLOCKS_PER_SEC)*1000;
+double exectime=(((double)(end)-(double)(begin))/CLOCKS_PER_SEC)*1000;
    return exectime;
 } 
   
@@ -137,7 +138,7 @@ cl_event vecinit(cl_kernel vecinit_k, cl_command_queue que,
 cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	cl_mem d_v1, cl_int nels, cl_event init_event)
 {
-	const size_t workitem=(nels + 1)/2; 
+	const size_t workitem=(nels+1)/2; 
 	const size_t gws[] = { round_mul_up(workitem, gws_align_init) };
 	const size_t lws[] = { _lws };
 	printf("init gws e workitem : %d | %zu = %zu  %i\n", nels, gws_align_init, gws[0],workitem);

@@ -246,20 +246,22 @@ kernel void miosort_sliding(global int * restrict arr,const int nels){
 
 }
 
+//TODO alcuni workitem dello stesso workgroup vengono bloccati nella barriera e bloccano tutti i workitem 
+//nello stesso workgroup, bisognerebbe fare entrare tutti i workitem nello stesso workgroup
 kernel void local_miosort(global int * restrict arr,int nels, local int* lmem){
 	const int gi=get_global_id(0);
-	if(gi>=nels/2)return;
+	if(gi>=(nels+1)/2)return;
 	const uint lws=get_local_size(0);
 	const uint groupid=get_group_id(0);
 	const uint start=(get_group_id(0)*lws)<<1;
 	const uint end=(start+(lws<<1)>nels ? nels : start+(lws<<1));
 	const int li=get_local_id(0);
-	if(li==0)printf("block_id %i local_item %i start %i end %i",groupid,li,start,end);
+	//if(li==0)printf("block_id %i local_item %i start %i end %i\n",groupid,li,start,end);
 	for(int i=0;i<lws;i++){
-		int indexin=( (gi<<1) >= end-1 ? start : gi<<1) ;
-		int indexfin=(indexin+1 >= end ? end-1 : indexin+1);
-		printf("indexin %i e indexfin %i del workitem %i\n",indexin,indexfin,gi);
-			if(arr[indexin]>arr[indexfin]){
+		int indexin=( (gi<<1) + 1 >= end ? start : gi<<1) ;
+		int indexfin=(indexin + 1 >= end ? end-1 : indexin+1);
+		//printf("indexin %i e indexfin %i del workitem %i\n",indexin,indexfin,gi);
+		if(arr[indexin]>arr[indexfin]){
 			int tmp = arr[indexfin];
 			arr[indexfin]=arr[indexin];
 			arr[indexin]=tmp;
@@ -267,16 +269,17 @@ kernel void local_miosort(global int * restrict arr,int nels, local int* lmem){
 		int indexpast=indexin;
 		indexin=(indexin+2>=end ? start : indexin+1);
 		indexfin=(indexpast+2 >= end ? end-1 : indexpast+2);
-		printf("22indexin %i e indexfin %i del workitem %i\n",indexin,indexfin,gi);
-		barrier(CLK_LOCAL_MEM_FENCE);
+		//printf("22indexin %i e indexfin %i del workitem %i\n",indexin,indexfin,gi);
+		barrier(CLK_GLOBAL_MEM_FENCE);
 		if(arr[indexin]>arr[indexfin]){
 			int tmp = arr[indexfin];
 			arr[indexfin]=arr[indexin];
 			arr[indexin]=tmp;
 		}
-		barrier(CLK_LOCAL_MEM_FENCE);
+		barrier(CLK_GLOBAL_MEM_FENCE);
 
 	}
+	//if(gi==0)printarr(arr,nels);
 
 }
 
@@ -319,4 +322,90 @@ kernel void local_miosort_lmem(global int * restrict arr,int nels, local int* lm
 	}
 	arr[arr_global_index]=lmem[arr_local_index];
 	arr[(arr_global_index)+1]=lmem[(arr_local_index)+1];
+}
+
+
+kernel void local_count_sort(global int * restrict arr,int nels,local int * lmem){
+	const int gi= get_global_id(0);
+	if(gi>=nels)return;
+	int pivot = arr[gi];
+	const int li=get_local_id(0);
+	const int lws=get_local_size(0);
+	const int groupid = get_group_id(0);
+	const int first_el = groupid*lws;
+	int counter=0,repetition=0;
+	for(int i=first_el;i<(first_el + lws); i++){
+		if(arr[i] == pivot){repetition++;}
+		else if(arr[i] < pivot){counter++;}
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	for(int i = 0; i < repetition; i++){
+		arr[first_el+counter+i]=pivot;	
+	}
+	//if(gi==0)printarr(arr,nels);
+}
+
+kernel void local_count_sort_lmem(global int * restrict arr,int nels,local int * lmem){
+	const int gi= get_global_id(0);
+	if(gi>=nels)return;
+	int pivot = arr[gi];
+	const int li=get_local_id(0);
+	lmem[li]=pivot;
+	const int lws=get_local_size(0);
+	const int groupid = get_group_id(0);
+	const int first_el = groupid*lws;
+	int counter=0,repetition=0;
+	barrier(CLK_LOCAL_MEM_FENCE);
+	for(int i=0;i<lws; i++){
+		if(lmem[i] == pivot){repetition++;}
+		else if(lmem[i] < pivot){counter++;}
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	for(int i = 0; i < repetition; i++){
+		arr[first_el+counter+i]=pivot;	
+	}
+	//if(gi==0)printarr(arr,nels);
+}
+
+int4 __OVERLOADABLE__  isless(int4 first,int4 second){
+	int4 res;
+	res.s0 = (first.s0 < second.s0 ? 1 : 0); 
+	res.s1 = (first.s1 < second.s1 ? 1 : 0); 
+	res.s2 = (first.s2 < second.s2 ? 1 : 0); 
+	res.s3 = (first.s3 < second.s3 ? 1 : 0); 
+	return res;
+}
+
+int4 __OVERLOADABLE__ isequal(int4 first,int4 second){
+	int4 res;
+	res.s0 = (first.s0 == second.s0 ? 1 : 0); 
+	res.s1 = (first.s1 == second.s1 ? 1 : 0); 
+	res.s2 = (first.s2 == second.s2 ? 1 : 0); 
+	res.s3 = (first.s3 == second.s3 ? 1 : 0); 
+	return res;
+}
+
+kernel void local_count_sort_vect(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
+	const int gi= get_global_id(0);
+	const int nquarts=nels/4;
+	if(gi>=nquarts)return;
+	int pivot = arr[gi].s0;
+	int4 vecpivot= (int4)(pivot);
+	const int li=get_local_id(0);
+	const int lws=get_local_size(0);
+	const int groupid = get_group_id(0);
+	const int first_quart = groupid*lws;
+	int counter=0,repetition=0;
+	int4 counter4 = (int4)(0),repetition4 = (int4)(0);
+	for(int i=first_quart;i<(first_quart + lws); i++){
+		repetition4 += isequal(arr[i],pivot);
+		counter4 += isless(arr[i], pivot);
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	repetition=repetition4.s0+repetition4.s1+repetition4.s2+repetition4.s3; 
+	counter=counter4.s0+counter4.s1+counter4.s2+counter4.s3; 
+	for(int i = 0; i < repetition; i++){
+		res[ (first_quart*4) + counter + i]=pivot;	
+	}
+	if(gi==0)printarr(arr,nels);
 }
