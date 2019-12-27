@@ -148,6 +148,8 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	ocl_check(err, "set sortinit arg", i-1);
 	err = clSetKernelArg(sortinit_k, i++, sizeof(nels), &nels);
 	ocl_check(err, "set sortinit arg", i-1);
+	err = clSetKernelArg(sortinit_k, i++, sizeof(d_v1), &d_v1);
+	ocl_check(err, "set sortinit arg", i-1);
 	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*_lws,NULL);
 	ocl_check(err, "set sortinit localmemory arg",i-1);
 
@@ -175,6 +177,10 @@ int main(int argc,char** argv){
 	cl_int nels= atoi(argv[1]);
 	const size_t memsize = nels*sizeof(cl_int);
 	cl_int lws = atoi(argv[2]);
+	if(nels & 3){
+		printf("number of elements must be a multiple of 4\n");
+		exit(1);
+	}
 
 	cl_platform_id p = select_platform();
 	cl_device_id d = select_device(p);
@@ -185,7 +191,7 @@ int main(int argc,char** argv){
 
 	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit", &err);
 	ocl_check(err, "create kernel vecinit");
-	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_lmem", &err);
+	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmem", &err);
 	ocl_check(err, "create kernel miocountsort");
 
 

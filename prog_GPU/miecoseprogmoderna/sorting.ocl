@@ -364,40 +364,33 @@ kernel void local_count_sort_lmem(global int * restrict arr,int nels,local int *
 	for(int i = 0; i < repetition; i++){
 		arr[first_el+counter+i]=pivot;	
 	}
-	//if(gi==0)printarr(arr,nels);
 }
 
-int4 __OVERLOADABLE__  isless(int4 first,int4 second){
-	int4 res;
-	res.s0 = (first.s0 < second.s0 ? 1 : 0); 
-	res.s1 = (first.s1 < second.s1 ? 1 : 0); 
-	res.s2 = (first.s2 < second.s2 ? 1 : 0); 
-	res.s3 = (first.s3 < second.s3 ? 1 : 0); 
-	return res;
+int4 __OVERLOADABLE__  isless(int4 first,int4 second){	
+	return (int4)((first.s0 < second.s0 ? 1 : 0), (first.s1 < second.s1 ? 1 : 0), (first.s2 < second.s2 ? 1 : 0), (first.s3 < second.s3 ? 1 : 0));
 }
 
 int4 __OVERLOADABLE__ isequal(int4 first,int4 second){
-	int4 res;
-	res.s0 = (first.s0 == second.s0 ? 1 : 0); 
-	res.s1 = (first.s1 == second.s1 ? 1 : 0); 
-	res.s2 = (first.s2 == second.s2 ? 1 : 0); 
-	res.s3 = (first.s3 == second.s3 ? 1 : 0); 
-	return res;
+	return (int4)((first.s0 == second.s0 ? 1 : 0), (first.s1 == second.s1 ? 1 : 0), (first.s2 == second.s2 ? 1 : 0), (first.s3 == second.s3 ? 1 : 0));
+}
+
+inline void printvec(const int4 vect){
+	printf("s0 = %i s1 = %i s2 = %i s3 = %i \n",vect.s0,vect.s1,vect.s2,vect.s3);
 }
 
 kernel void local_count_sort_vect(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
 	const int gi= get_global_id(0);
-	const int nquarts=nels/4;
-	if(gi>=nquarts)return;
-	int pivot = arr[gi].s0;
-	int4 vecpivot= (int4)(pivot);
+	const int nquarts=nels>>2;
+	if(gi>=nels)return;
+	int pivot = res[gi];
 	const int li=get_local_id(0);
 	const int lws=get_local_size(0);
 	const int groupid = get_group_id(0);
-	const int first_quart = groupid*lws;
+	const int first_el = groupid*lws;
+	const int first_quart = first_el>>2;
 	int counter=0,repetition=0;
 	int4 counter4 = (int4)(0),repetition4 = (int4)(0);
-	for(int i=first_quart;i<(first_quart + lws); i++){
+	for(int i=first_quart;i<(first_quart + (lws>>2)); i++){
 		repetition4 += isequal(arr[i],pivot);
 		counter4 += isless(arr[i], pivot);
 	}
@@ -405,7 +398,36 @@ kernel void local_count_sort_vect(global int4 * restrict arr,int nels, global in
 	repetition=repetition4.s0+repetition4.s1+repetition4.s2+repetition4.s3; 
 	counter=counter4.s0+counter4.s1+counter4.s2+counter4.s3; 
 	for(int i = 0; i < repetition; i++){
-		res[ (first_quart*4) + counter + i]=pivot;	
+		res[ first_el + counter + i]=pivot;	
 	}
-	if(gi==0)printarr(arr,nels);
+}
+
+kernel void local_count_sort_vectlmem(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
+	const int gi= get_global_id(0);
+	const int nquarts=nels>>2;
+	if(gi>=nels)return;
+	int pivot = res[gi];
+	const int li=get_local_id(0);
+	const int lws=get_local_size(0);
+	const int groupid = get_group_id(0);
+	const int first_el = groupid*lws;
+	const int first_quart = first_el>>2;
+	const int reading_quarts=lws>>2;
+	const int reading_place = (groupid * reading_quarts) + li; 
+	if(li<reading_quarts){
+		lmem[li] = arr[reading_place];
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	int counter=0,repetition=0;
+	int4 counter4 = (int4)(0),repetition4 = (int4)(0);
+	for(int i=0;i<(reading_quarts); i++){
+		repetition4 += isequal(lmem[i],pivot);
+		counter4 += isless(lmem[i], pivot);
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	repetition=repetition4.s0+repetition4.s1+repetition4.s2+repetition4.s3; 
+	counter=counter4.s0+counter4.s1+counter4.s2+counter4.s3; 
+	for(int i = first_el + counter; i < first_el + counter + repetition; i++){
+		res[i]=pivot;	
+	}
 }
