@@ -115,7 +115,7 @@ inline void printarr(global int* arr,int nels){
 
 }
 
-inline int binaryIndex(int pivot, int* find1, int size){
+inline int binaryIndex(int pivot,global int* find1, int size){
         if(pivot>find1[size-1])return size;
         if(pivot<find1[0])return 0;
         int l=0 , r=size-1 ;
@@ -127,7 +127,8 @@ inline int binaryIndex(int pivot, int* find1, int size){
                     l = m + 1; 
                 else
                     r = m - 1; 
-        } 
+        }
+	return size; 
 }
 //TODO implementarle in opencl e vedere se funzionano pure lì
 /*void mergebinaryWithRepParallel(int * out,int nelstot ,int* arr1,int* arr2,int nels1,int nels2 ){
@@ -181,22 +182,22 @@ void mergebinaryNoRepHalfParallel(int * out,int nelstot ,int* arr2,int* arr1,int
 //solo che ci vorrebbe una azione di sincronia tra i workitem 
 //che non si può avere dato che abbiamo già sforato il local worksize
 
-kernel void mergebinaryNoRepFullParallel(global int * restrict out ,global int* restrict arr, nels,int subsize ){
+kernel void mergebinaryNoRepFullParallel(global int * restrict out ,global int* restrict arr, int nels,int subsize ){
         const int gi = get_global_id(0);
 	if(gi>=nels)return;
 	const int lws = get_local_size(0);
 	const int subsetid = gi/subsize;
-	int start,end;
-
+	int start,end,index;
 	if((subsetid & 1)){
 		start = (subsetid - 1) * subsize;
 	} else{
 		start = (subsetid + 1) * subsize;
 	}
 	end = (start + subsize) < nels ? start + subsize : nels;
-	const int locindex=0;
+	int locindex=0;
 	if(start<nels) locindex = binaryIndex(arr[gi],arr + start , end - start);
-	out[index] = arr[gi + locindex];
+	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
+	out[index] = arr[gi];
 }
 
 
@@ -494,7 +495,9 @@ kernel void local_count_sort_vectlmem(global int4 * restrict arr,int nels, globa
 	const int gi= get_global_id(0);
 	const int nquarts=nels>>2;
 	if(gi>=nels)return;
-	int pivot = res[gi];
+
+
+	int pivot = res[gi] ;
 	const int li=get_local_id(0);
 	const int lws=get_local_size(0);
 	const int groupid = get_group_id(0);
@@ -522,30 +525,47 @@ kernel void local_count_sort_vectlmem(global int4 * restrict arr,int nels, globa
 
 kernel void local_count_sort_vectlmemV2(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
 	const int gi= get_global_id(0);
+	const int place = gi & 3; 
 	const int nquarts=nels>>2;
-	if(gi>=nels)return;
-	int pivot = res[gi];
+	const int group_id = get_group_id(0);
+	int pivot;
 	const int li=get_local_id(0);
 	const int lws=get_local_size(0);
-	const int groupid = get_group_id(0);
-	const int first_el = groupid*lws;
+	const int first_el = group_id*lws;
 	const int first_quart = first_el>>2;
-	const int reading_quarts=lws>>2;
-	const int reading_place = (groupid * reading_quarts) + li;
-	if(li<reading_quarts){
-		lmem[li] = arr[reading_place];
+	const int reading_quarts=(group_id == nels/lws ? (nels-(nels/lws)*lws)>>2 : lws>>2);
+	const int reading_place = (group_id * (lws>>2)) + li;
+	
+	if(gi<nels){
+		if(place == 0){
+			pivot = arr[gi>>2].x;
+		} else if(place == 1){
+			pivot = arr[gi>>2].y;
+		} else if(place == 2){
+			pivot = arr[gi>>2].z;
+		} else if(place == 3){
+			pivot = arr[gi>>2].w;
+		}
+		if(li<reading_quarts){
+			lmem[li] = arr[reading_place];
+		}
+		//if(group_id == nels/lws ){printf("MI CHIAMO %i NOME LOCALE %i reading_quarts %i reading_place %i DIMMI COSA SONO PER FAVORE %i\n",gi,li,reading_quarts,reading_place,arr[reading_place]);}
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	int counter=0,repetition=0;
 	int4 counter4 = (int4)(0),repetition4 = (int4)(0);
-	for(int i=0;i<(reading_quarts); i++){
-		repetition4 += isequal(lmem[i],pivot);
-		counter4 += isless(lmem[i], pivot);
+	if(gi<nels){
+		for(int i=0;i<(reading_quarts); i++){
+			repetition4 += isequal(lmem[i],pivot);
+			counter4 += isless(lmem[i], pivot);
+		}
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
-	repetition=repetition4.s0+repetition4.s1+repetition4.s2+repetition4.s3; 
-	counter=counter4.s0+counter4.s1+counter4.s2+counter4.s3;
-	for(int i = first_el + counter; i < first_el + counter + repetition; i++){
-		res[i]=pivot;
+	if(gi<nels){
+		repetition=repetition4.s0+repetition4.s1+repetition4.s2+repetition4.s3; 
+		counter=counter4.s0+counter4.s1+counter4.s2+counter4.s3;
+		for(int i = first_el + counter; i < first_el + counter + repetition; i++){
+			res[i]=pivot;
+		}
 	}
 }
