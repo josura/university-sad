@@ -30,8 +30,8 @@ void printarr(int* arr,unsigned int nels){
 size_t gws_align_init;
 size_t gws_align_sort;
 
-cl_event vecinit(cl_kernel vecinit_k, cl_command_queue que,
-	cl_mem d_v1, cl_int nels)
+cl_event vecinit_rep(cl_kernel vecinit_k, cl_command_queue que,
+	cl_mem d_v1, cl_int nels, cl_int rep)
 {
 	const size_t gws[] = { round_mul_up(nels, gws_align_init) };
 	printf("init gws: %d | %zu = %zu\n", nels, gws_align_init, gws[0]);
@@ -40,15 +40,17 @@ cl_event vecinit(cl_kernel vecinit_k, cl_command_queue que,
 
 	cl_uint i = 0;
 	err = clSetKernelArg(vecinit_k, i++, sizeof(d_v1), &d_v1);
-	ocl_check(err, "set vecinit arg", i-1);
+	ocl_check(err, "set vecinit_rep arg", i-1);
 	err = clSetKernelArg(vecinit_k, i++, sizeof(nels), &nels);
-	ocl_check(err, "set vecinit arg", i-1);
+	ocl_check(err, "set vecinit_rep arg", i-1);
+	err = clSetKernelArg(vecinit_k, i++, sizeof(rep), &rep);
+	ocl_check(err, "set vecinit_rep arg", i-1);
 
 	err = clEnqueueNDRangeKernel(que, vecinit_k, 1,
 		NULL, gws, NULL,
 		0, NULL, &vecinit_evt);
 	
-	ocl_check(err, "enqueue vecinit");
+	ocl_check(err, "enqueue vecinit_rep");
 
 	return vecinit_evt;
 }
@@ -112,19 +114,20 @@ cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue qu
 }
 
 
-void verify(int * arr, unsigned int nels){
-	for(int i=0;i<nels;i++){
-		if(arr[i]!=i+1){
-			fprintf(stderr,"mismatch %u != %u",arr[i],i+1);
-			exit(1);
-		}
+void verify(int * arr, unsigned int nels,int rep){
+	for(int i=0;i<nels/rep;i++){
+		for(int j = 0; j<rep;j++)
+			if(arr[i*rep + j]!=i+1){
+				fprintf(stderr,"index %i mismatch %u != %u \n",i*rep+j,arr[i*rep+j],i+1);
+				exit(1);
+			}
 	}
 }
 
 int main(int argc,char** argv){
 	controlinput(argv,argc);
-	cl_int nels= atoi(argv[1]);
-	const size_t memsize = nels*sizeof(cl_int);
+	cl_int nels= atoi(argv[1])*5;
+	const size_t memsize = nels*5*sizeof(cl_int);
 	cl_int lws = atoi(argv[2]);
 	if(nels & 3){
 		printf("number of elements must be a multiple of 4\n");
@@ -138,11 +141,11 @@ int main(int argc,char** argv){
 	cl_program prog = create_program("sorting.ocl", ctx, d);
 	cl_int err;
 
-	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit", &err);
+	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit_rep", &err);
 	ocl_check(err, "create kernel vecinit");
-	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV2", &err);
+	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmem", &err);
 	ocl_check(err, "create kernel miocountsort");
-	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryNoRepParallel", &err);
+	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepParallel", &err);
 	ocl_check(err, "create kernel merging");
 	
 
@@ -174,8 +177,16 @@ int main(int argc,char** argv){
         ocl_check(err, "create buffer d_Sort2");
 
         cl_event init_evt, sort_evt, merge_evt1, merge_evt2, read_evt;
+	//tre ripetizioni
+        init_evt = vecinit_rep(vecinit_k, que, d_Sort1, nels/5, 5 );
+	cl_int *h_Sort; 
+	h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
+			CL_MAP_READ,
+			0, memsize,
+                	1, &init_evt, &read_evt, &err);
+	ocl_check(err,"map buffer d_Sort1 init");
+	//printarr(h_Sort,nels);
 
-        init_evt = vecinit(vecinit_k, que, d_Sort1, nels );
         sort_evt = sortparallel(sort_k, lws, que, d_Sort1,  nels ,init_evt);
 	int turn=0;	
 	double total_time_merge=0;
@@ -206,7 +217,6 @@ int main(int argc,char** argv){
 		}
 		current_merge_size<<=1;
 	}
-	cl_int *h_Sort; 
 	if(turn == 0){
 		h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
 			CL_MAP_READ,
@@ -221,22 +231,22 @@ int main(int argc,char** argv){
 		ocl_check(err,"map buffer d_Sort2");
 	}
 
-	//printarr(h_Sort,nels);
         clWaitForEvents(1, &read_evt);
-	verify(h_Sort,nels);
+	//printarr(h_Sort,nels);
+	verify(h_Sort,nels,5);
 	const double runtime_init_ms = runtime_ms(init_evt);
 	const double runtime_sort_ms = runtime_ms(sort_evt);
 	const double runtime_read_ms = runtime_ms(read_evt);
 
 	const double init_bw_gbs = 1.0*memsize/1.0e6/runtime_init_ms;
-	const double sort_bw_gbs = memsize*log2(nels)/1.0e6/runtime_sort_ms;
+	const double sort_bw_gbs = memsize/1.0e6/runtime_sort_ms;
 	const double merge_bw_gbs = memsize*log2(nels)/1.0e6/total_time_merge;
 
 	const double read_bw_gbs = memsize/1.0e6/runtime_read_ms;
 
 	printf("init: %d int in %gms: %g GB/s %g GE/s\n",
 		nels, runtime_init_ms, init_bw_gbs, nels/1.0e6/runtime_init_ms);
-	printf("sort: %d int in %gms: %g GB/s %g GE/s\n",
+	printf("sort_local: %d int in %gms: %g GB/s %g GE/s\n",
 		nels, runtime_sort_ms, sort_bw_gbs, (nels)/1.0e6/runtime_sort_ms);
 	printf("read: %d int in %gms: %g GB/s %g GE/s\n",
 		nels, runtime_read_ms, read_bw_gbs, nels/1.0e6/runtime_read_ms);

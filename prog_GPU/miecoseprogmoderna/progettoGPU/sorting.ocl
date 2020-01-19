@@ -9,6 +9,18 @@ kernel void vecinit(global int * restrict arr, int nels){
 }
 
 
+kernel void vecinit_rep(global int * restrict arr, int nels,int repetition){
+	
+	const int gi= get_global_id(0);	
+		
+	if(gi>=nels)return;
+	for(int i =0; i < repetition; i++ )
+		arr[gi*repetition+i]=nels-gi;
+	
+
+}
+
+
 // needed helper methods
 inline void swap(uint *a, uint *b) {
         uint tmp;
@@ -116,11 +128,13 @@ inline void printarr(global int* arr,int nels){
 }
 
 inline int binaryIndex(int pivot,global int* find1, int size){
-        if(pivot>find1[size-1])return size;
+        if(pivot>find1[size-1]){
+		return size;
+	}
         if(pivot<find1[0])return 0;
-        int l=0 , r=size-1 ;
+        int l=0 ,m, r=size-1 ;
         while (l <= r ) { 
-                int m = l + ((r - l)>> 1); 
+                m = l + ((r - l)>> 1); 
                 if ((m+1)<(size) && (pivot > find1[m]) && (find1[m+1] >= pivot)) 
                     return m+1; 
                 if ((find1[m] < pivot) ) 
@@ -128,31 +142,36 @@ inline int binaryIndex(int pivot,global int* find1, int size){
                 else
                     r = m - 1; 
         }
-	return size; 
-}
-//TODO implementarle in opencl e vedere se funzionano pure lì
-/*void mergebinaryWithRepParallel(int * out,int nelstot ,int* arr1,int* arr2,int nels1,int nels2 ){
-        for(int i=0;i<nels1;i++){
-                int locindex = binaryIndex(arr1[i],arr2,nels2);
-                int index = i + locindex;
-                out[index] = arr1[i];
-                int minors = locindex-1;
-                while(i-1>=0 && minors >= 0 &&  arr1[i-1]<=arr2[minors]){
-                        out[--index]=arr2[minors--];
-                }
-                locindex = binaryIndex(arr2[i],arr1,nels1);
-                index = i + locindex;
-                out[index] = arr2[i];
-                minors = locindex-1;
-                while(i-1>=0 && minors >= 0 &&  arr2[i-1]<=arr1[minors]){
-                        out[--index]=arr1[minors--];
-                }
-        }
-        while(out[nelstot-1]!=arr1[nels1-1] && out[nelstot-1]!=arr2[nels2-1]){
-                out[--nelstot]=arr1[nels1-1];
-        }
+	return 0; 
 }
 
+kernel void mergebinaryWithRepParallel(global int * out ,global int* arr,int nels, int subsize ){
+        const int gi = get_global_id(0);
+	if(gi>=nels)return;
+	const int lws = get_local_size(0);
+	const int subsetid = gi/subsize;
+	int start,end,index;
+	if((subsetid & 1)){
+		start = (subsetid - 1) * subsize;
+	} else{
+		start = (subsetid + 1) * subsize;
+	}
+	end = (start + subsize) < nels ? start + subsize : nels;
+	int locindex=0;
+	if(start<nels) locindex = binaryIndex(arr[gi],arr + start , end - start);
+	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
+	out[index] = arr[gi];
+	//if(gi<8)printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i,  ho sx %i e dx %i\n",gi,start,end,arr[gi],locindex,index,arr[start+locindex-1],arr[start+locindex+1]);
+	int repetition=gi;
+	while(arr[gi]==arr[repetition+1]){
+		out[++index]=arr[repetition++];
+	}
+	repetition = start+locindex;
+	while(arr[repetition]==arr[gi]){
+		out[++index]=arr[repetition++];
+	}
+}
+/*
 void mergebinaryNoRepHalfParallel(int * out,int nelstot ,int* arr2,int* arr1,int nels1,int nels2 ){
         int lastindex=0;
         for(int i=0;i<nels1;i++){
@@ -182,9 +201,10 @@ void mergebinaryNoRepHalfParallel(int * out,int nelstot ,int* arr2,int* arr1,int
 //solo che ci vorrebbe una azione di sincronia tra i workitem 
 //che non si può avere dato che abbiamo già sforato il local worksize
 
-kernel void mergebinaryNoRepFullParallel(global int * restrict out ,global int* restrict arr, int nels,int subsize ){
+kernel void mergebinaryNoRepParallel(global int * restrict out ,global int* restrict arr, int nels,int subsize ){
         const int gi = get_global_id(0);
 	if(gi>=nels)return;
+	//if(gi==0){printarr(arr, nels); printf("DOVE SONO AIUTO\n");}
 	const int lws = get_local_size(0);
 	const int subsetid = gi/subsize;
 	int start,end,index;
@@ -198,6 +218,7 @@ kernel void mergebinaryNoRepFullParallel(global int * restrict out ,global int* 
 	if(start<nels) locindex = binaryIndex(arr[gi],arr + start , end - start);
 	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
 	out[index] = arr[gi];
+	//printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i\n",gi,start,end,arr[gi],locindex,index);
 }
 
 
