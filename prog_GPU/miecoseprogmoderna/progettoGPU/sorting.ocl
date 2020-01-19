@@ -20,6 +20,31 @@ kernel void vecinit_rep(global int * restrict arr, int nels,int repetition){
 
 }
 
+uint MWC64X(uint2 *state)
+{
+    enum { A=4294883355U};
+    uint x=(*state).x, c=(*state).y;  // Unpack the state
+    uint res=x^c;                     // Calculate the result
+    uint hi=mul_hi(x,A);              // Step the RNG
+    x=x*A+c;
+    c=hi+(x<c);
+    *state=(uint2)(x,c);               // Pack the state back up
+    return res;                       // Return the next result
+}
+
+inline uint xorshift(uint2 randoms){
+	uint seed = randoms.x + get_global_id(0);
+	uint t = seed ^ (seed << 11);  
+	return (randoms.y ^ (randoms.y >> 19) ^ (t ^ (t >> 8)));
+}
+
+kernel void vecinit_random(global uint * restrict arr, int nels){
+	const int gi = get_global_id(0);
+	if(gi >= nels) return;
+	uint2 state = (uint2)(gi>>7,get_local_id(0));
+	arr[gi] = xorshift(state);
+}
+
 
 // needed helper methods
 inline void swap(uint *a, uint *b) {
