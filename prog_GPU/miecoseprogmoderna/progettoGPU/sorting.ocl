@@ -41,7 +41,7 @@ inline uint xorshift(uint2 randoms){
 kernel void vecinit_random(global uint * restrict arr, int nels){
 	const int gi = get_global_id(0);
 	if(gi >= nels) return;
-	uint2 state = (uint2)(gi>>7,get_local_id(0));
+	uint2 state = (uint2)(gi>>11,get_local_id(0));
 	arr[gi] = xorshift(state);
 }
 
@@ -170,6 +170,29 @@ inline int binaryIndex(int pivot,global int* find1, int size){
 	return 0; 
 }
 
+inline int binaryIndexV2(int pivot,global int* find1, int size,int condition,int gi){
+        if( (condition && pivot>find1[size-1]) || (!condition && pivot>=find1[size-1]) ){
+		return size;
+	}
+        if((condition && pivot<find1[0]) || (!condition && pivot<=find1[0]) )return 0;
+        int l=0 ,m, r=size-1 ;
+        while (l <= r ) { 
+                m = l + ((r - l)>> 1); 
+			//if(  gi<=7)printf("binary %i pivot %i find1[%i] %i find1[%i+1] %i condition %i\n ", gi,pivot,m , find1[m], m ,find1[m+1],condition);
+                if ((m+1)<(size)){
+			if( (condition && (pivot > find1[m]) && (find1[m+1] >= pivot)) || 
+			(!condition && (pivot >= find1[m]) && (find1[m+1] > pivot)) ) 
+			    return m+1;
+		}
+                if ((condition && (find1[m] < pivot)) ||  (!condition && (find1[m] <= pivot)) ) 
+                    l = m + 1; 
+           
+                else
+                    r = m - 1; 
+        }
+	return m; 
+}
+
 kernel void mergebinaryWithRepParallel(global int * out ,global int* arr,int nels, int subsize ){
         const int gi = get_global_id(0);
 	if(gi>=nels)return;
@@ -196,6 +219,29 @@ kernel void mergebinaryWithRepParallel(global int * out ,global int* arr,int nel
 		out[++index]=arr[repetition++];
 	}
 }
+
+kernel void mergebinaryWithRepParallelV2(global int * restrict out ,global int* restrict arr, int nels,int subsize ){
+        const int gi = get_global_id(0);
+	if(gi>=nels)return;
+	const int lws = get_local_size(0);
+	const int subsetid = gi/subsize;
+	int start,end,index;
+	char condition = (subsetid & 1);
+	if(condition){
+		start = (subsetid - 1) * subsize;
+	} else{
+		start = (subsetid + 1) * subsize;
+	}
+	end = (start + subsize) < nels ? start + subsize : nels;
+	int locindex=0;
+	if(start<nels) locindex = binaryIndexV2(arr[gi],arr + start , end - start,condition,gi);
+	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
+	//if(gi<8)printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i,  ho sx %i e dx %i condition %i\n",gi,start,end,arr[gi],locindex,index,arr[start+locindex-1],arr[start+locindex+1],condition);
+	out[index] = arr[gi];
+	//printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i\n",gi,start,end,arr[gi],locindex,index);
+}
+
+
 /*
 void mergebinaryNoRepHalfParallel(int * out,int nelstot ,int* arr2,int* arr1,int nels1,int nels2 ){
         int lastindex=0;
