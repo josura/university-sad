@@ -244,24 +244,40 @@ kernel void mergebinaryWithRepParallelV2(global int * restrict out ,global int* 
 
 kernel void mergebinaryWithRepHalfParallel(global int * out ,global int* arr,int nels, int subsize ){
         const int gi = get_global_id(0);
-	if(gi>=nels)return;
+	if(gi>=(nels+1)>>1)return;
 	const int gws = get_global_size(0);
-	const int subsetid = gi/subsize;
-	int start,end,index;
-	if((subsetid & 1)){
-		start = (subsetid - 1) * subsize;
-	} else{
-		start = (subsetid + 1) * subsize;
-	}
-	end = (start + subsize) < nels ? start + subsize : nels;
+	short subindex = 0;
+	for(int shiftsize=subsize;shiftsize>1;shiftsize>>=1)subindex++;
+	//questo algoritmo richiede che la subsize sia una potenza di 2, altrimenti diventa difficile calcolare gli indici
+	int subitem = gi & (subsize-1);
+	const int arr_start = (gi>>subindex)*(subsize<<1);
+	int pivot = arr[arr_start + subitem];
+	int start = arr_start+subsize , index, size;
+	size = ((start + subsize) < nels ? subsize : nels - start);
 	int locindex=0;
-	if(start<nels) locindex = binaryIndex(arr[gi],arr + start , end - start);
-	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
-	out[index] = arr[gi];
-	//if(gi<8)printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i,  ho sx %i e dx %i\n",gi,start,end,arr[gi],locindex,index,arr[start+locindex-1],arr[start+locindex+1]);
-	if(gi == gws - 1){
+	if(start<nels) locindex = binaryIndex(pivot , arr + start , size);
+	int element_index = arr_start + subitem;
+	index = element_index + locindex;
+	out[index] = pivot;
+	// index of the place in between the numbers(or at the end or start) where the pivot was "found"
+	int place_index = start + locindex - 1;
+	//if(gi>8)printf("ciao sono %i arr_start %i start %i size %i valore %i minori %i pos finale %i,  ho sx %i e dx %i\n",gi, arr_start, start, size, pivot,locindex,index,arr[start+locindex-1],arr[start+locindex+1]);
+	int current_index = index;
+	if(element_index > arr_start){
+			//if(gi<4)printf(" --- %i arr[%i precedente al pivot] <= arr[%i nel secondo array] %i <= %i",gi,element_index-1,place_index, arr[element_index-1],arr[place_index]);
+		while(place_index>=start && arr[element_index-1]<=arr[place_index] ){
+			//if(gi>12)printf(" ---SONO DENTRO %i arr[%i precedente al pivot] <= arr[%i nel secondo array] %i <= %i",gi,element_index-1,place_index, arr[element_index-1],arr[place_index]);
+			out[--current_index]=arr[place_index--];
+		}
+	}
+	//se è il primo elemento deve vedere se ci sono elementi minori nel secondo array e copiarli
+	if(!(subitem & (subsize - 1))){
+		while(place_index>= start)out[--current_index]=arr[place_index--];
+	}
+	if(subitem == subsize-1){
 		int repetition = start+locindex;
-		while(repetition<nels){
+		while(repetition< start + subsize){
+			//if(gi>12)printf(" ---ME SO PERSO %i arr[%i precedente al pivot] index %i  %i ",gi,repetition,index+1, arr[repetition]);
 			out[++index]=arr[repetition++];
 		}
 	}
