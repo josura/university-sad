@@ -143,7 +143,7 @@ int main(int argc,char** argv){
 
 	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit_rep", &err);
 	ocl_check(err, "create kernel vecinit");
-	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmem", &err);
+	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV3", &err);
 	ocl_check(err, "create kernel miocountsort");
 	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepParallel", &err);
 	ocl_check(err, "create kernel merging");
@@ -180,14 +180,15 @@ int main(int argc,char** argv){
 	//tre ripetizioni
         init_evt = vecinit_rep(vecinit_k, que, d_Sort1, nels/5, 5 );
 	cl_int *h_Sort; 
+        sort_evt = sortparallel(sort_k, lws, que, d_Sort1,  nels ,init_evt);
 	h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
 			CL_MAP_READ,
 			0, memsize,
-                	1, &init_evt, &read_evt, &err);
+                	1, &sort_evt, &read_evt, &err);
 	ocl_check(err,"map buffer d_Sort1 init");
-	//printarr(h_Sort,nels);
+	printarr(h_Sort,nels);
 
-        sort_evt = sortparallel(sort_k, lws, que, d_Sort1,  nels ,init_evt);
+
 	int turn=0;	
 	double total_time_merge=0;
 	int current_merge_size = lws;

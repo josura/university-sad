@@ -39,10 +39,19 @@ cl_event vecinit_random(cl_kernel vecinit_k, cl_command_queue que,
 	cl_int err;
 
 	cl_uint i = 0;
+	srand(time(NULL));
+	cl_int seeds[2];
+	seeds[0]=rand();
+	srand(time(NULL));
+	seeds[1]=rand();
 	err = clSetKernelArg(vecinit_k, i++, sizeof(d_v1), &d_v1);
-	ocl_check(err, "set vecinit arg", i-1);
+	ocl_check(err, "set vecinit arg1", i-1);
+	err = clSetKernelArg(vecinit_k, i++, sizeof(cl_int), seeds);
+	ocl_check(err, "set vecinit arg2", i-1);
+	err = clSetKernelArg(vecinit_k, i++, sizeof(cl_int), seeds + 1);
+	ocl_check(err, "set vecinit arg3", i-1);
 	err = clSetKernelArg(vecinit_k, i++, sizeof(nels), &nels);
-	ocl_check(err, "set vecinit arg", i-1);
+	ocl_check(err, "set vecinit arg4", i-1);
 
 	err = clEnqueueNDRangeKernel(que, vecinit_k, 1,
 		NULL, gws, NULL,

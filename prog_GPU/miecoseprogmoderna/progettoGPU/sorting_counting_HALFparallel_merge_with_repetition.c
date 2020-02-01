@@ -39,10 +39,19 @@ cl_event vecinit_random(cl_kernel vecinit_k, cl_command_queue que,
 	cl_int err;
 
 	cl_uint i = 0;
+	srand(time(NULL));
+	cl_int seeds[2];
+	seeds[0]=rand();
+	srand(time(NULL));
+	seeds[1]=rand();
 	err = clSetKernelArg(vecinit_k, i++, sizeof(d_v1), &d_v1);
-	ocl_check(err, "set vecinit arg", i-1);
+	ocl_check(err, "set vecinit arg1", i-1);
+	err = clSetKernelArg(vecinit_k, i++, sizeof(cl_int), seeds);
+	ocl_check(err, "set vecinit arg2", i-1);
+	err = clSetKernelArg(vecinit_k, i++, sizeof(cl_int), seeds + 1);
+	ocl_check(err, "set vecinit arg3", i-1);
 	err = clSetKernelArg(vecinit_k, i++, sizeof(nels), &nels);
-	ocl_check(err, "set vecinit arg", i-1);
+	ocl_check(err, "set vecinit arg4", i-1);
 
 	err = clEnqueueNDRangeKernel(que, vecinit_k, 1,
 		NULL, gws, NULL,
@@ -57,9 +66,9 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	cl_mem d_v1, cl_int nels, cl_event init_event)
 {
 	const size_t workitem=nels; 
-	const size_t gws[] = { round_mul_up(workitem, gws_align_init) };
-	const size_t lws[] = { _lws };
-	printf("init gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
+	const size_t gws[] = { round_mul_up(workitem, round_mul_up(_lws, gws_align_init) ) };
+	const size_t lws[] = { round_mul_up(_lws, gws_align_init) };
+	printf("sort_base gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
 	cl_event sortinit_evt;
 	cl_int err;
 
@@ -85,10 +94,10 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size)
 {
-	const size_t workitem=(nels+1)>>1; 
+	const size_t workitem=round_mul_up((nels)>>1,current_merge_size); 
 	const size_t gws[] = { round_mul_up(workitem, round_mul_up(_lws, gws_align_init) ) };
 	const size_t lws[] = { round_mul_up(_lws, gws_align_init) };
-	printf("init gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
+	printf("merge gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
 	cl_event sortinit_evt;
 	cl_int err;
 
