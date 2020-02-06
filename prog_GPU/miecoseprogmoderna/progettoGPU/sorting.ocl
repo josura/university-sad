@@ -203,7 +203,19 @@ inline int binaryIndexV2(int pivot,global int* find1, int size,int condition,int
 	return m; 
 }
 
-inline int binaryLoc(int li,int pivot, global int* find1, int size){
+inline int binaryLoc(int pivot, global int* find1, int size){
+	int pos = 0;
+	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
+	{
+		int j = pos+inc-1;
+		int confront2 = find1[j];
+		pos += (confront2 < pivot)  ? inc:0;
+		pos = min(pos,size);
+	}
+	return pos;
+}
+
+inline int binaryLoc_corr(int li,int pivot, global int* find1, int size){
 	int pos = 0;
 	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
 	{
@@ -255,7 +267,7 @@ kernel void mergebinaryWithRepParallelV3(global int * out ,global int* arr,int n
 	}
 	end = (start + subsize) < nels ? start + subsize : nels;
 	int locindex=0;
-	if(start<nels) locindex = binaryLoc((gi & (subsize - 1)),arr[gi],arr + start , end - start);
+	if(start<nels) locindex = binaryLoc_corr((gi & (subsize - 1)),arr[gi],arr + start , end - start);
 	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
 	out[index] = arr[gi];
 	if(gi<16)printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i,  ho sx %i e dx %i\n",gi,start,end,arr[gi],locindex,index,arr[start+locindex-1],arr[start+locindex+1]);
@@ -326,6 +338,47 @@ kernel void mergebinaryWithRepHalfParallel(global int * out ,global int* arr,int
 	}
 }
 
+kernel void mergebinaryWithRepHalfParallelV2(global int * out ,global int* arr,int nels, int subsize ){
+        const int gi = get_global_id(0);
+	if(gi>=round_mul_up((nels)>>1,subsize))return;
+	const int gws = get_global_size(0);
+	short subindex = 0;
+	for(int shiftsize=subsize;shiftsize>1;shiftsize>>=1)subindex++;
+	//questo algoritmo richiede che la subsize sia una potenza di 2, altrimenti diventa difficile calcolare gli indici
+	int subitem = gi & (subsize-1);
+	//arr_start è il punto dove devono lavorare i (subsize) workitem, non ho trovato un modo per ora di risolvere la lettura fuori dall'array se non con una condizione 
+	const int arr_start = (gi>>subindex)*(subsize<<1);
+	if(arr_start + subitem < nels){
+		int pivot = arr[arr_start + subitem];
+		int start = arr_start+subsize , index, size;
+		size = ((start + subsize) < nels ? subsize : nels - start);
+		int locindex=0;
+		if(start<nels) locindex = binaryLoc(pivot , arr + start , size);
+		int element_index = arr_start + subitem;
+		index = element_index + locindex;
+		out[index] = pivot;
+		// index of the place in between the numbers(or at the end or start) where the pivot was "found"
+		int place_index = start + locindex - 1;
+		int current_index = index;
+		//deve copiare tutti gli elementi che sono minori del pivot e maggiori del suo elemento precedente
+		if(element_index > arr_start){
+			while(place_index>=start && arr[element_index-1]<=arr[place_index] ){
+				out[--current_index]=arr[place_index--];
+			}
+		}
+		//se è il primo elemento deve vedere se ci sono elementi minori nel secondo array e copiarli
+		if(!(subitem & (subsize - 1))){
+			while(place_index>= start)out[--current_index]=arr[place_index--];
+		}
+		//se è l'ultimo elemento deve vedere se ci sono elementi ancora non considerati e copiarli nell'array destinazione
+		if(subitem == subsize-1){
+			int repetition = start+locindex;
+			while(repetition< start + size){
+				out[++index]=arr[repetition++];
+			}
+		}
+	}
+}
 
 
 //in teoria si potrebbe fare tutto il merge di tutti i sottogruppi, 
@@ -394,7 +447,7 @@ kernel void ParallelMerge_Local(global const int * in,int nels,global int * out,
 	in += offset; out += offset;
 
 	//loading in local memory
-	if(gi<nels)
+	if(li<wg)
 	lmem[li] = in[li];
 	barrier(CLK_LOCAL_MEM_FENCE); 
 
@@ -408,18 +461,20 @@ kernel void ParallelMerge_Local(global const int * in,int nels,global int * out,
 		for (int inc=length;inc>0;inc>>=1) // binary search in the sub-sequence
 		{
 			int j = sibling+pos+inc-1;
-			int confront2 = lmem[j];
+			int confront2 = (j<wg ?  lmem[j] : INT_MAX);
 			bool smaller = (confront2 < pivot) || ( confront2 == pivot && j < li );
 			pos += (smaller)?inc:0;
 			pos = min(pos,length);
 		}
 		int bits = (length<<1)-1; // mask for destination
 		int dest = ((ii + pos) & bits) | (li & ~bits); // destination index in merged sequence
+		barrier(CLK_LOCAL_MEM_FENCE);
 		lmem[dest] = pivot;
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
   // Write output
+  	if(li<wg)
 	out[li] = lmem[li];
 }
 
