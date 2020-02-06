@@ -157,7 +157,13 @@ inline void printarr(global int* arr,int nels){
 		printf("\n");
 
 }
+inline void printarrlocal(local int* arr,int nels){
+		for(int i =0;i < nels;i++){
+			printf("%i ",arr[i]);
+			}
+		printf("\n");
 
+}
 inline int binaryIndex(int pivot,global int* find1, int size){
         if(pivot>find1[size-1]){
 		return size;
@@ -180,11 +186,9 @@ inline int binaryIndexV2(int pivot,global int* find1, int size,int condition,int
         if( (condition && pivot>find1[size-1]) || (!condition && pivot>=find1[size-1]) ){
 		return size;
 	}
-        /*if((condition && pivot<find1[0]) || (!condition && pivot<=find1[0]) )return 0;*/
         int l=0 ,m, r=size-1 ;
         while (l <= r ) { 
                 m = l + ((r - l)>> 1); 
-			//if(  gi<=7)printf("binary %i pivot %i find1[%i] %i find1[%i+1] %i condition %i\n ", gi,pivot,m , find1[m], m ,find1[m+1],condition);
                 if ((m+1)<(size)){
 			if( (condition && (pivot > find1[m]) && (find1[m+1] >= pivot)) || 
 			(!condition && (pivot >= find1[m]) && (find1[m+1] > pivot)) ) 
@@ -197,6 +201,18 @@ inline int binaryIndexV2(int pivot,global int* find1, int size,int condition,int
                     r = m - 1; 
         }
 	return m; 
+}
+
+inline int binaryLoc(int li,int pivot, global int* find1, int size){
+	int pos = 0;
+	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
+	{
+		int j = pos+inc-1;
+		int confront2 = find1[j];
+		pos += (confront2 < pivot) || ( confront2 == pivot && j < li ) ? inc:0;
+		pos = min(pos,size);
+	}
+	return pos;
 }
 
 kernel void mergebinaryWithRepParallel(global int * out ,global int* arr,int nels, int subsize ){
@@ -224,6 +240,26 @@ kernel void mergebinaryWithRepParallel(global int * out ,global int* arr,int nel
 	while(repetition < nels && arr[repetition]==arr[gi]){
 		out[++index]=arr[repetition++];
 	}
+}
+
+kernel void mergebinaryWithRepParallelV3(global int * out ,global int* arr,int nels, int subsize ){
+        const int gi = get_global_id(0);
+	if(gi>=nels)return;
+	const int lws = get_local_size(0);
+	const int subsetid = gi/subsize;
+	int start,end,index;
+	if((subsetid & 1)){
+		start = (subsetid - 1) * subsize;
+	} else{
+		start = (subsetid + 1) * subsize;
+	}
+	end = (start + subsize) < nels ? start + subsize : nels;
+	int locindex=0;
+	if(start<nels) locindex = binaryLoc((gi & (subsize - 1)),arr[gi],arr + start , end - start);
+	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
+	out[index] = arr[gi];
+	if(gi<16)printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i,  ho sx %i e dx %i\n",gi,start,end,arr[gi],locindex,index,arr[start+locindex-1],arr[start+locindex+1]);
+	
 }
 
 kernel void mergebinaryWithRepParallelV2(global int * restrict out ,global int* restrict arr, int nels,int subsize ){
@@ -291,31 +327,6 @@ kernel void mergebinaryWithRepHalfParallel(global int * out ,global int* arr,int
 }
 
 
-/*
-void mergebinaryNoRepHalfParallel(int * out,int nelstot ,int* arr2,int* arr1,int nels1,int nels2 ){
-        int lastindex=0;
-        for(int i=0;i<nels1;i++){
-                int locindex = binaryIndex(arr1[i],arr2,nels2);
-                int index = i + locindex;
-                if(index>lastindex)lastindex=index;
-                printf("per %i il posto e\' %i\n",arr1[i],index);
-                out[index] = arr1[i];
-                int minors = locindex-1;
-                //printf("minors %i arr1 %i %i arr2 %i\n",minors,arr1[i-1],arr1[i],arr2[minors]);
-                while(i-1>=0 && minors >= 0 &&  arr1[i-1]<=arr2[minors]){
-                        printf("confronto %i < %i minors %i ",arr1[i-1],arr2[minors],minors);
-                        out[--index]=arr2[minors--];
-                        printf("per %i il posto e\' %i\n",arr1[minors+1],index+1);
-                }
-                
-        }
-        if(lastindex<nelstot-1){
-                while(nelstot>lastindex+1){
-                        out[--nelstot]=arr2[--nels2];
-                }
-        }
-        
-}*/
 
 //in teoria si potrebbe fare tutto il merge di tutti i sottogruppi, 
 //solo che ci vorrebbe una azione di sincronia tra i workitem 
@@ -371,44 +382,45 @@ kernel void mergesortnaive(global int * restrict arr,int nels){
 
 }
 
-kernel void ParallelMerge_Local(global const int * in,global int * out,__local int * aux)
+kernel void ParallelMerge_Local(global const int * in,int nels,global int * out,__local int * lmem)
 {
-  int i = get_local_id(0);
-  int wg = get_local_size(0);
+	const int li = get_local_id(0);
+	int wg = get_local_size(0);
+	const int gi = get_global_id(0);
+	// Move to the start of the subarray
+	int offset = get_group_id(0) * wg;
+	// see if we are at the end of the array
+	wg = (offset+wg)<nels ? wg : nels - offset; 
+	in += offset; out += offset;
 
-  // Move IN, OUT to block start
-  int offset = get_group_id(0) * wg;
-  in += offset; out += offset;
+	//loading in local memory
+	if(gi<nels)
+	lmem[li] = in[li];
+	barrier(CLK_LOCAL_MEM_FENCE); 
 
-  //loading in local memory
-  aux[i] = in[i];
-  barrier(CLK_LOCAL_MEM_FENCE); // make sure AUX is entirely up to date
-
-  // Now we will merge sub-sequences of length 1,2,...,WG/2
-  for (int length=1;length<wg;length<<=1)
-  {
-    int iData = aux[i];
-    uint confront1 = iData;
-    int ii = i & (length-1);  // index in our sequence in 0..length-1
-    int sibling = (i - ii) ^ length; // beginning of the sibling sequence
-    int pos = 0;
-    for (int inc=length;inc>0;inc>>=1) // increment for dichotomic search
-    {
-      int j = sibling+pos+inc-1;
-      uint confront2 = aux[j];
-      bool smaller = (confront2 < confront1) || ( confront2 == confront1 && j < i );
-      pos += (smaller)?inc:0;
-      pos = min(pos,length);
-    }
-    int bits = 2*length-1; // mask for destination
-    int dest = ((ii + pos) & bits) | (i & ~bits); // destination index in merged sequence
-    barrier(CLK_LOCAL_MEM_FENCE);
-    aux[dest] = iData;
-    barrier(CLK_LOCAL_MEM_FENCE);
-  }
+	  // merging sub-sequences of length 1,2,...,WG/2
+	for (int length=1;length<wg;length<<=1)
+	{
+		int pivot = lmem[li];
+		int ii = li & (length-1);  // index in our sequence in 0..length-1
+		int sibling = (li - ii) ^ length; // beginning of the sibling to find the position
+		int pos = 0;
+		for (int inc=length;inc>0;inc>>=1) // binary search in the sub-sequence
+		{
+			int j = sibling+pos+inc-1;
+			int confront2 = lmem[j];
+			bool smaller = (confront2 < pivot) || ( confront2 == pivot && j < li );
+			pos += (smaller)?inc:0;
+			pos = min(pos,length);
+		}
+		int bits = (length<<1)-1; // mask for destination
+		int dest = ((ii + pos) & bits) | (li & ~bits); // destination index in merged sequence
+		lmem[dest] = pivot;
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
 
   // Write output
-  out[i] = aux[i];
+	out[li] = lmem[li];
 }
 
 kernel void miosort(global int * restrict arr,int nels){
@@ -554,6 +566,44 @@ kernel void local_miosort_lmem(global int * restrict arr,int nels, local int* lm
 	arr[(arr_global_index)+1]=lmem[(arr_local_index)+1];
 }
 
+kernel void local_miosort_lmemV2(global int2 * restrict arr,int nels, local int* lmem){
+	const int gi=get_global_id(0);
+	const uint lws=get_local_size(0);
+	if(gi>=(nels+(lws>>1))/2)return;
+	const uint groupid=get_group_id(0);
+	const uint start=get_group_id(0)*(lws<<1);
+	const uint end=(start+(lws<<1)>nels ? nels : start+(lws<<1));
+	const uint el_lws = end-start ;
+	const int li=get_local_id(0);
+	const uint arr_local_index = li << 1;
+	int2 tmp= arr[gi];
+	lmem[arr_local_index]=tmp.x;
+	lmem[arr_local_index+1]=tmp.y;
+	barrier(CLK_LOCAL_MEM_FENCE);
+	//if(arr_local_index==0){printarr((global int*)arr,nels);printarrlocal(lmem,lws);}
+//#pragma unroll
+	for(int i=0;i<lws;i++){
+		int indexin=( (arr_local_index)+1 >= el_lws ? 0 : arr_local_index) ;
+		int indexfin=indexin+1;
+		if(lmem[indexin]>lmem[indexfin]){
+			int tmp = lmem[indexfin];
+			lmem[indexfin]=lmem[indexin];
+			lmem[indexin]=tmp;
+		}
+		indexin=(indexin+2>=el_lws ? 0 : indexin+1);
+		indexfin=indexin+1;
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if(lmem[indexin]>lmem[indexfin]){
+			int tmp = lmem[indexfin];
+			lmem[indexfin]=lmem[indexin];
+			lmem[indexin]=tmp;
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+	}
+	tmp = (int2)(lmem[arr_local_index],lmem[arr_local_index+1]);
+	arr[gi]=tmp;
+}
 
 kernel void local_count_sort(global int * restrict arr,int nels,local int * lmem){
 	const int gi= get_global_id(0);
