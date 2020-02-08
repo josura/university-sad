@@ -30,68 +30,72 @@ void printarr(int* arr,unsigned int nels){
 size_t gws_align_init;
 size_t gws_align_sort;
 
-cl_event vecinit_rep(cl_kernel vecinit_k,cl_int _lws,  cl_command_queue que,
-	cl_mem d_v1, cl_int nels, cl_int rep)
+cl_event vecinit_random(cl_kernel vecinit_k, cl_command_queue que,
+        cl_mem d_v1, cl_int nels)
 {
-	const size_t gws[] = { round_mul_up(nels, round_mul_up(_lws,gws_align_init)) };
-	const size_t lws[] = { _lws };
-	printf("init gws: %d | %zu = %zu\n", nels, gws_align_init, gws[0]);
-	cl_event vecinit_evt;
-	cl_int err;
+        const size_t gws[] = { round_mul_up(nels, gws_align_init) };
+        printf("init gws: %d | %zu = %zu\n", nels, gws_align_init, gws[0]);
+        cl_event vecinit_evt;
+        cl_int err;
 
-	cl_uint i = 0;
-	err = clSetKernelArg(vecinit_k, i++, sizeof(d_v1), &d_v1);
-	ocl_check(err, "set vecinit_rep arg", i-1);
-	err = clSetKernelArg(vecinit_k, i++, sizeof(nels), &nels);
-	ocl_check(err, "set vecinit_rep arg", i-1);
-	err = clSetKernelArg(vecinit_k, i++, sizeof(rep), &rep);
-	ocl_check(err, "set vecinit_rep arg", i-1);
+        cl_uint i = 0;
+        srand(time(NULL));
+        cl_int seeds[2];
+        seeds[0]=rand();
+        srand(time(NULL));
+        seeds[1]=rand();
+        err = clSetKernelArg(vecinit_k, i++, sizeof(d_v1), &d_v1);
+        ocl_check(err, "set vecinit arg1", i-1);
+        err = clSetKernelArg(vecinit_k, i++, sizeof(cl_int), seeds);
+        ocl_check(err, "set vecinit arg2", i-1);
+        err = clSetKernelArg(vecinit_k, i++, sizeof(cl_int), seeds + 1);
+        ocl_check(err, "set vecinit arg3", i-1);
+        err = clSetKernelArg(vecinit_k, i++, sizeof(nels), &nels);
+        ocl_check(err, "set vecinit arg4", i-1);
 
-	err = clEnqueueNDRangeKernel(que, vecinit_k, 1,
-		NULL, gws, NULL,
-		0, NULL, &vecinit_evt);
-	
-	ocl_check(err, "enqueue vecinit_rep");
+        err = clEnqueueNDRangeKernel(que, vecinit_k, 1,
+                NULL, gws, NULL,
+                0, NULL, &vecinit_evt);
 
-	return vecinit_evt;
+        ocl_check(err, "enqueue vecinit");
+
+        return vecinit_evt;
 }
 
+
 cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
-	cl_mem d_v1, cl_int nels, cl_event init_event)
-{
-	const size_t workitem=nels; 
-	const size_t gws[] = { round_mul_up(workitem , round_mul_up(_lws, gws_align_init) ) };
-	const size_t lws[] = { round_mul_up(_lws,gws_align_init) };
-	printf("init gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
-	cl_event sortinit_evt;
-	cl_int err;
+	cl_mem d_v1, cl_int nels, cl_event init_event) {
+	const size_t workitem=(nels+1)/2;
+        const size_t gws[] = { round_mul_up(workitem, gws_align_init) };
+        const size_t lws[] = { _lws };
+        printf("sort_base gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
+        cl_event sortinit_evt;
+        cl_int err;
 
-	cl_uint i = 0;
-	err = clSetKernelArg(sortinit_k, i++, sizeof(d_v1), &d_v1);
-	ocl_check(err, "set sortinit arg1", i-1);
-	err = clSetKernelArg(sortinit_k, i++, sizeof(nels), &nels);
-	ocl_check(err, "set sortinit arg2", i-1);
-	err = clSetKernelArg(sortinit_k, i++, sizeof(d_v1), &d_v1);
-	ocl_check(err, "set sortinit arg3", i-1);
-	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*_lws,NULL);
-	ocl_check(err, "set sortinit localmemory arg",i-1);
+        cl_uint i = 0;
+        err = clSetKernelArg(sortinit_k, i++, sizeof(d_v1), &d_v1);
+        ocl_check(err, "set sortinit arg", i-1);
+        err = clSetKernelArg(sortinit_k, i++, sizeof(nels), &nels);
+        ocl_check(err, "set sortinit arg", i-1);
+        err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*_lws*2,NULL);
+        ocl_check(err, "set sortinit localmemory arg",i-1);
 
-	err = clEnqueueNDRangeKernel(que, sortinit_k, 1,
-		NULL, gws, lws,
-		1, &init_event, &sortinit_evt);
-	
-	ocl_check(err, "enqueue sortinit");
+        err = clEnqueueNDRangeKernel(que, sortinit_k, 1,
+                NULL, gws, lws,
+                1, &init_event, &sortinit_evt);
 
-	return sortinit_evt;
+        ocl_check(err, "enqueue sortinit");
+
+        return sortinit_evt;
+
 }
 
 cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
-	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size)
-{
-	const size_t workitem=nels; 
-	const size_t gws[] = { round_mul_up(workitem , round_mul_up(_lws, gws_align_init) ) };
-	const size_t lws[] = { round_mul_up(_lws,gws_align_init) };
-	printf("init gws ,workitem e workgroupsize : %d | %zu = %zu      %li  %li\n", nels, gws_align_init, gws[0],workitem,lws[0]);
+	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size) {
+	const size_t workitem=round_mul_up((nels)>>1,current_merge_size);
+        const size_t gws[] = { round_mul_up(workitem, round_mul_up(_lws, gws_align_init) ) };
+        const size_t lws[] = { round_mul_up(_lws, gws_align_init) };	
+	printf("sort_merge gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
 	cl_event sortinit_evt;
 	cl_int err;
 
@@ -115,29 +119,25 @@ cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue qu
 }
 
 
-void verify(int * arr, unsigned int nels,int rep){
-	for(int i=0;i<nels/rep;i++){
-		for(int j = 0; j<rep;j++)
-			if(arr[i*rep + j]!=i+1){
-				fprintf(stderr,"index %i mismatch %u != %u \n",i*rep+j,arr[i*rep+j],i+1);
-				exit(1);
-			}
+void verify(int * arr, unsigned int nels){
+	for(int i=0;i<nels-1;i++){
+		if(arr[i]>arr[i+1]){
+			fprintf(stderr,"%u mismatch %u > %u",i,arr[i],arr[i+1]);
+			exit(1);
+		}
 	}
 }
 
 int main(int argc,char** argv){
 	controlinput(argv,argc);
-	cl_int nels= atoi(argv[1])*5;
-	const size_t memsize = nels*5*sizeof(cl_int);
+	cl_int nels= atoi(argv[1]);
+	const size_t memsize = nels*sizeof(cl_int);
 	cl_int lws = atoi(argv[2]);
-	if(nels & 3){
-		printf("number of elements must be a multiple of 4\n");
+	if(nels & 1){
+		printf("number of elements must be a multiple of 2\n");
 		exit(1);
 	}
-	if(lws & 3){
-		printf("local work size must be a multiple of 4\n");
-		exit(1);
-	}
+
 	cl_platform_id p = select_platform();
 	cl_device_id d = select_device(p);
 	cl_context ctx = create_context(p, d);
@@ -145,11 +145,11 @@ int main(int argc,char** argv){
 	cl_program prog = create_program("sorting.ocl", ctx, d);
 	cl_int err;
 
-	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit_rep", &err);
+	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit_random", &err);
 	ocl_check(err, "create kernel vecinit");
-	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV3", &err);
-	ocl_check(err, "create kernel miocountsort");
-	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepParallelV3", &err);
+	cl_kernel sort_k = clCreateKernel(prog, "local_miosort_lmemV3", &err);
+	ocl_check(err, "create kernel miosort");
+	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepHalfParallel", &err);
 	ocl_check(err, "create kernel merging");
 	
 
@@ -181,19 +181,9 @@ int main(int argc,char** argv){
         ocl_check(err, "create buffer d_Sort2");
 
         cl_event init_evt, sort_evt, merge_evt1, merge_evt2, read_evt;
-	//tre ripetizioni
-        init_evt = vecinit_rep(vecinit_k,lws, que, d_Sort1, nels/5, 5 );
-	cl_int *h_Sort; 
+
+        init_evt = vecinit_random(vecinit_k, que, d_Sort1, nels );
         sort_evt = sortparallel(sort_k, lws, que, d_Sort1,  nels ,init_evt);
-	/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
-			CL_MAP_READ,
-			0, memsize,
-                	1, &sort_evt, &read_evt, &err);
-	ocl_check(err,"map buffer d_Sort1 init");
-
-	clWaitForEvents(1, &read_evt);
-	printarr(h_Sort,nels);*/
-
 	int turn=0;	
 	double total_time_merge=0;
 	int current_merge_size = lws;
@@ -209,15 +199,6 @@ int main(int argc,char** argv){
 			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort2: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
-			/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
-				CL_MAP_READ,
-				0, memsize,
-				1, &merge_evt2, &read_evt, &err);
-			ocl_check(err,"map buffer d_Sort1 init");
-
-			clWaitForEvents(1, &read_evt);
-			printarr(h_Sort,nels);
-			*/
 
 		}
 		else{
@@ -229,20 +210,10 @@ int main(int argc,char** argv){
 			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort1: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
-			/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
-				CL_MAP_READ,
-				0, memsize,
-				1, &merge_evt1, &read_evt, &err);
-			ocl_check(err,"map buffer d_Sort1 init");
-
-			clWaitForEvents(1, &read_evt);
-			printarr(h_Sort,nels);
-			*/
-
-
 		}
 		current_merge_size<<=1;
 	}
+	cl_int *h_Sort; 
 	if(turn == 0){
 		h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
 			CL_MAP_READ,
@@ -257,22 +228,22 @@ int main(int argc,char** argv){
 		ocl_check(err,"map buffer d_Sort2");
 	}
 
-        clWaitForEvents(1, &read_evt);
 	//printarr(h_Sort,nels);
-	verify(h_Sort,nels,5);
+        clWaitForEvents(1, &read_evt);
+	verify(h_Sort,nels);
 	const double runtime_init_ms = runtime_ms(init_evt);
 	const double runtime_sort_ms = runtime_ms(sort_evt);
 	const double runtime_read_ms = runtime_ms(read_evt);
 
 	const double init_bw_gbs = 1.0*memsize/1.0e6/runtime_init_ms;
-	const double sort_bw_gbs = memsize/1.0e6/runtime_sort_ms;
+	const double sort_bw_gbs = memsize*log2(nels)/1.0e6/runtime_sort_ms;
 	const double merge_bw_gbs = memsize*log2(nels)/1.0e6/total_time_merge;
 
 	const double read_bw_gbs = memsize/1.0e6/runtime_read_ms;
 
 	printf("init: %d int in %gms: %g GB/s %g GE/s\n",
 		nels, runtime_init_ms, init_bw_gbs, nels/1.0e6/runtime_init_ms);
-	printf("sort_local: %d int in %gms: %g GB/s %g GE/s\n",
+	printf("sort: %d int in %gms: %g GB/s %g GE/s\n",
 		nels, runtime_sort_ms, sort_bw_gbs, (nels)/1.0e6/runtime_sort_ms);
 	printf("read: %d int in %gms: %g GB/s %g GE/s\n",
 		nels, runtime_read_ms, read_bw_gbs, nels/1.0e6/runtime_read_ms);

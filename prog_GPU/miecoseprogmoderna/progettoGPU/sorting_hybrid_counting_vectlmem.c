@@ -192,7 +192,7 @@ int main(int argc,char** argv){
 
 	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit", &err);
 	ocl_check(err, "create kernel vecinit");
-	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmem", &err);
+	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV3", &err);
 	ocl_check(err, "create kernel miocountsort");
 
 
@@ -236,7 +236,7 @@ int main(int argc,char** argv){
 	const double runtime_read_ms = runtime_ms(read_evt);
 
 	const double init_bw_gbs = 1.0*memsize/1.0e6/runtime_init_ms;
-	const double sort_bw_gbs = memsize*nels/lws/4/1.0e6/runtime_sort_ms;
+	const double sort_bw_gbs = 2.0*memsize/1.0e6/runtime_sort_ms;
 	const double sort_local_bw_gbs = memsize*log2(nels)/1.0e6/runtime_sort_ms;
 
 	const double read_bw_gbs = memsize/1.0e6/runtime_read_ms;

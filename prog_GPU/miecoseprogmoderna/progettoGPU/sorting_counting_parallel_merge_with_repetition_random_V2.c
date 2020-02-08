@@ -39,10 +39,19 @@ cl_event vecinit_random(cl_kernel vecinit_k, cl_command_queue que,
 	cl_int err;
 
 	cl_uint i = 0;
+	srand(time(NULL));
+	cl_int seeds[2];
+	seeds[0]=rand();
+	srand(time(NULL));
+	seeds[1]=rand();
 	err = clSetKernelArg(vecinit_k, i++, sizeof(d_v1), &d_v1);
-	ocl_check(err, "set vecinit arg", i-1);
+	ocl_check(err, "set vecinit arg1", i-1);
+	err = clSetKernelArg(vecinit_k, i++, sizeof(cl_int), seeds);
+	ocl_check(err, "set vecinit arg2", i-1);
+	err = clSetKernelArg(vecinit_k, i++, sizeof(cl_int), seeds + 1);
+	ocl_check(err, "set vecinit arg3", i-1);
 	err = clSetKernelArg(vecinit_k, i++, sizeof(nels), &nels);
-	ocl_check(err, "set vecinit arg", i-1);
+	ocl_check(err, "set vecinit arg4", i-1);
 
 	err = clEnqueueNDRangeKernel(que, vecinit_k, 1,
 		NULL, gws, NULL,
@@ -142,7 +151,7 @@ int main(int argc,char** argv){
 	ocl_check(err, "create kernel vecinit");
 	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV3", &err);
 	ocl_check(err, "create kernel miocountsort");
-	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepParallelV2", &err);
+	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepParallelV3", &err);
 	ocl_check(err, "create kernel merging");
 	
 
@@ -178,14 +187,14 @@ int main(int argc,char** argv){
         init_evt = vecinit_random(vecinit_k, que, d_Sort1, nels );
         	cl_int *h_Sort; 
         sort_evt = sortparallel(sort_k, lws, que, d_Sort1,  nels ,init_evt);
-	h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
+	/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
 			CL_MAP_READ,
 			0, memsize,
                 	1, &sort_evt, &read_evt, &err);
 	ocl_check(err,"map buffer d_Sort1 init");
 
 	clWaitForEvents(1, &read_evt);
-	printarr(h_Sort,nels);
+	printarr(h_Sort,nels);*/
 
 	int turn=0;	
 	double total_time_merge=0;
@@ -202,7 +211,7 @@ int main(int argc,char** argv){
 			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort2: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
-			h_Sort = clEnqueueMapBuffer(que, d_Sort2, CL_FALSE,
+			/*h_Sort = clEnqueueMapBuffer(que, d_Sort2, CL_FALSE,
 				CL_MAP_READ,
 				0, memsize,
 				1, &merge_evt2, &read_evt, &err);
@@ -210,7 +219,7 @@ int main(int argc,char** argv){
 
 			clWaitForEvents(1, &read_evt);
 			printarr(h_Sort,nels);
-			
+			*/
 
 		}
 		else{
@@ -222,7 +231,7 @@ int main(int argc,char** argv){
 			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort1: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
-			h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
+			/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
 				CL_MAP_READ,
 				0, memsize,
 				1, &merge_evt1, &read_evt, &err);
@@ -230,7 +239,7 @@ int main(int argc,char** argv){
 
 			clWaitForEvents(1, &read_evt);
 			printarr(h_Sort,nels);
-			
+			*/
 
 
 		}

@@ -232,7 +232,7 @@ int main(int argc,char** argv){
 	const double runtime_read_ms = runtime_ms(read_evt);
 
 	const double init_bw_gbs = 1.0*memsize/1.0e6/runtime_init_ms;
-	const double sort_bw_gbs = (memsize*nels/lws)/1.0e6/runtime_sort_ms;
+	const double sort_bw_gbs = 2.0*memsize/1.0e6/runtime_sort_ms;
 	const double sort_local_bw_gbs = (memsize* log2(nels) / 1.0e6/time_local_merge);
 	const double read_bw_gbs = memsize/1.0e6/runtime_read_ms;
 

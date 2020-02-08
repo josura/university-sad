@@ -227,6 +227,18 @@ inline int binaryLoc_corr(int li,int pivot, global int* find1, int size){
 	return pos;
 }
 
+inline int binaryLoc_corr2(char condition,int pivot, global int* find1, int size){
+	int pos = 0;
+	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
+	{
+		int j = pos+inc-1;
+		int confront2 = find1[j];
+		pos += (confront2 < pivot) || ( confront2 == pivot && condition ) ? inc:0;
+		pos = min(pos,size);
+	}
+	return pos;
+}
+
 kernel void mergebinaryWithRepParallel(global int * out ,global int* arr,int nels, int subsize ){
         const int gi = get_global_id(0);
 	if(gi>=nels)return;
@@ -267,10 +279,9 @@ kernel void mergebinaryWithRepParallelV3(global int * out ,global int* arr,int n
 	}
 	end = (start + subsize) < nels ? start + subsize : nels;
 	int locindex=0;
-	if(start<nels) locindex = binaryLoc_corr((gi & (subsize - 1)),arr[gi],arr + start , end - start);
+	if(start<nels) locindex = binaryLoc_corr2(subsetid & 1,arr[gi],arr + start , end - start);
 	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
 	out[index] = arr[gi];
-	if(gi<16)printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i,  ho sx %i e dx %i\n",gi,start,end,arr[gi],locindex,index,arr[start+locindex-1],arr[start+locindex+1]);
 	
 }
 
@@ -660,6 +671,42 @@ kernel void local_miosort_lmemV2(global int2 * restrict arr,int nels, local int*
 	arr[gi]=tmp;
 }
 
+kernel void local_miosort_lmemV3(global int2 * restrict arr,int nels, local int* lmem){
+	const int gi=get_global_id(0);
+	const uint lws=get_local_size(0);
+	if(gi>=(nels+(lws>>1))/2)return;
+	const uint groupid=get_group_id(0);
+	const uint start=get_group_id(0)*(lws<<1);
+	const uint end=(start+(lws<<1)>nels ? nels : start+(lws<<1));
+	const uint el_lws = end-start ;
+	const int li=get_local_id(0);
+	const uint arr_local_index = li << 1;
+	int2 tmp= arr[gi];
+	//we are supposing that the numer of elements is divisible for 2
+	int indexfin1=arr_local_index | 1;
+	int indexin2=(indexfin1<el_lws-1 ? indexfin1 : 0);
+	int indexfin2=(indexin2 != 0 ? indexin2 + 1 : el_lws - 1);
+	lmem[arr_local_index]=tmp.x;
+	lmem[indexfin1]=tmp.y;
+	barrier(CLK_LOCAL_MEM_FENCE);
+	#pragma unroll
+	for(int i=0;i< lws;i++){
+		int confront1 = lmem[arr_local_index],confront2 = lmem[indexfin1];
+		char comp=(confront1>confront2);
+		lmem[indexfin1]=comp ? confront1 : confront2;
+		lmem[arr_local_index]=comp ? confront2 : confront1;
+		barrier(CLK_LOCAL_MEM_FENCE);
+		confront1 = lmem[indexin2],confront2 = lmem[indexfin2];
+		comp=(confront1>confront2);
+		lmem[indexfin2]=comp ? confront1 : confront2;
+		lmem[indexin2]=comp ? confront2 : confront1;
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+	}
+	tmp = (int2)(lmem[arr_local_index],lmem[indexfin1]);
+	arr[gi]=tmp;
+}
+
 kernel void local_count_sort(global int * restrict arr,int nels,local int * lmem){
 	const int gi= get_global_id(0);
 	if(gi>=nels)return;
@@ -777,7 +824,6 @@ kernel void local_count_sort_vectlmemV2(global int4 * restrict arr,int nels, glo
 	const int li=get_local_id(0);
 	const int lws=get_local_size(0);
 	const int first_el = group_id*lws;
-	const int first_quart = first_el>>2;
 	const int reading_quarts=(group_id == nels/lws ? (nels-(nels/lws)*lws)>>2 : lws>>2);
 	const int reading_place = (group_id * (lws>>2)) + li;
 		
@@ -824,7 +870,6 @@ kernel void local_count_sort_vectlmemV3(global int4 * restrict arr,int nels, glo
 	const int li=get_local_id(0);
 	const int lws=get_local_size(0);
 	const int first_el = group_id*lws;
-	const int first_quart = first_el>>2;
 	const int reading_quarts=(group_id == nels/lws ? (nels-(nels/lws)*lws)>>2 : lws>>2);
 	const int reading_place = (group_id * (lws>>2)) + li;
 	global int* restrict arr_scalar = (global int* )arr;
@@ -833,15 +878,15 @@ kernel void local_count_sort_vectlmemV3(global int4 * restrict arr,int nels, glo
 		if(li<reading_quarts){
 			lmem[li] = arr[reading_place];
 		}
-		//if(group_id == nels/lws ){printf("MI CHIAMO %i NOME LOCALE %i reading_quarts %i reading_place %i DIMMI COSA SONO PER FAVORE %i\n",gi,li,reading_quarts,reading_place,arr[reading_place]);}
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	int counter=0,repetition=0;
 	int4 counter4 = (int4)(0),repetition4 = (int4)(0);
 	if(gi<nels){
 		for(int i=0;i<(reading_quarts); i++){
-			repetition4 -= lmem[i] == pivot ;
-			counter4 -= lmem[i] < pivot;
+			const int4 compar = lmem[i];
+			repetition4 -= compar == pivot ;
+			counter4 -= compar < pivot;
 		}
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
