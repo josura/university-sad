@@ -373,8 +373,10 @@ kernel void mergebinaryWithRepHalfParallelV2(global int * out ,global int* arr,i
 		int current_index = index;
 		//deve copiare tutti gli elementi che sono minori del pivot e maggiori del suo elemento precedente
 		if(element_index > arr_start){
-			while(place_index>=start && arr[element_index-1]<=arr[place_index] ){
-				out[--current_index]=arr[place_index--];
+			int comp_previous = arr[element_index-1],comp_other;
+			while(place_index>=start && arr[element_index-1]<=(comp_other=arr[place_index]) ){
+				out[--current_index]=comp_other;
+				place_index--;
 			}
 		}
 		//se è il primo elemento deve vedere se ci sono elementi minori nel secondo array e copiarli
@@ -446,7 +448,7 @@ kernel void mergesortnaive(global int * restrict arr,int nels){
 
 }
 
-kernel void ParallelMerge_Local(global const int * in,int nels,global int * out,__local int * lmem)
+kernel void ParallelMerge_Local(global const int * in,int nels,global int * out,local int * lmem)
 {
 	const int li = get_local_id(0);
 	int wg = get_local_size(0);
@@ -863,8 +865,6 @@ kernel void local_count_sort_vectlmemV2(global int4 * restrict arr,int nels, glo
 
 kernel void local_count_sort_vectlmemV3(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
 	const int gi= get_global_id(0);
-	const int place = gi & 3; 
-	const int nquarts=nels>>2;
 	const int group_id = get_group_id(0);
 	int pivot;
 	const int li=get_local_id(0);
