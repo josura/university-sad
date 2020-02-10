@@ -255,7 +255,6 @@ kernel void mergebinaryWithRepParallel(global int * out ,global int* arr,int nel
 	if(start<nels) locindex = binaryIndex(arr[gi],arr + start , end - start);
 	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
 	out[index] = arr[gi];
-	//if(gi<8)printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i,  ho sx %i e dx %i\n",gi,start,end,arr[gi],locindex,index,arr[start+locindex-1],arr[start+locindex+1]);
 	int repetition=gi;
 	while(repetition + 1 < nels && arr[gi]==arr[repetition+1]){
 		out[++index]=arr[repetition++];
