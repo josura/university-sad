@@ -215,6 +215,33 @@ inline int binaryLoc(int pivot, global int* find1, int size){
 	return pos;
 }
 
+inline int binaryLoc_local(int pivot, global int* find1, int size,local int2* lmem, int localsize,int first,int last){
+	int pos = 0;
+	float normalizer = (localsize-1) / (float)(size-1); 
+	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
+	{
+		int j = pos+inc-1;
+		//normalize in local memory
+		const int localplace =  normalizer * j;
+		barrier(CLK_LOCAL_MEM_FENCE);
+		const int2 comp1 = lmem[localplace];
+		barrier(CLK_LOCAL_MEM_FENCE);
+		int confront2;
+	       	if(comp1.x!=INT_MAX){
+			confront2 = (comp1.y == j)? comp1.x:find1[j];
+		}
+		else{
+			const int2 temp1 =(int2)( find1[j],j);
+			confront2 = temp1.x;
+			lmem[localplace] = temp1;
+			barrier(CLK_LOCAL_MEM_FENCE);
+		}	
+		pos += (confront2 < pivot)  ? inc:0;
+		pos = min(pos,size);
+	}
+	return pos;
+}
+
 inline int binaryLoc_corr(int li,int pivot, global int* find1, int size){
 	int pos = 0;
 	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
@@ -364,6 +391,61 @@ kernel void mergebinaryWithRepHalfParallelV2(global int * out ,global int* arr,i
 		size = ((start + subsize) < nels ? subsize : nels - start);
 		int locindex=0;
 		if(start<nels) locindex = binaryLoc(pivot , arr + start , size);
+		int element_index = arr_start + subitem;
+		index = element_index + locindex;
+		out[index] = pivot;
+		// index of the place in between the numbers(or at the end or start) where the pivot was "found"
+		int place_index = start + locindex - 1;
+		int current_index = index;
+		//deve copiare tutti gli elementi che sono minori del pivot e maggiori del suo elemento precedente
+		if(element_index > arr_start){
+			int comp_previous = arr[element_index-1],comp_other;
+			while(place_index>=start && arr[element_index-1]<=(comp_other=arr[place_index]) ){
+				out[--current_index]=comp_other;
+				place_index--;
+			}
+		}
+		//se è il primo elemento deve vedere se ci sono elementi minori nel secondo array e copiarli
+		if(!(subitem & (subsize - 1))){
+			while(place_index>= start)out[--current_index]=arr[place_index--];
+		}
+		//se è l'ultimo elemento deve vedere se ci sono elementi ancora non considerati e copiarli nell'array destinazione
+		if(subitem == subsize-1){
+			int repetition = start+locindex;
+			while(repetition< start + size){
+				out[++index]=arr[repetition++];
+			}
+		}
+	}
+}
+
+kernel void mergebinaryWithRepHalfParallelV3local(global int * out ,global int* arr,int nels, int subsize ,local int2* lmem, int local_doub_size){
+        const int gi = get_global_id(0);
+	if(gi>=round_mul_up((nels)>>1,subsize))return;
+	const int gws = get_global_size(0);
+	const int li = get_local_id(0);
+	short subindex = 0;
+	for(int shiftsize=subsize;shiftsize>1;shiftsize>>=1)subindex++;
+	//questo algoritmo richiede che la subsize sia una potenza di 2, altrimenti diventa difficile calcolare gli indici
+	int subitem = gi & (subsize-1);
+	//arr_start è il punto dove devono lavorare i (subsize) workitem, non ho trovato un modo per ora di risolvere la lettura fuori dall'array se non con una condizione 
+	const int arr_start = (gi>>subindex)*(subsize<<1);
+	local int first,last;
+	if(arr_start + subitem < nels){
+		int pivot = arr[arr_start + subitem];
+		int start = arr_start+subsize , index, size;
+		size = ((start + subsize) < nels ? subsize : nels - start);
+		int locindex=0;
+		if(li==0){
+			first = binaryLoc(pivot , arr + start , size);
+
+		}
+		if(li==get_local_size(0)-1){ 
+			last = binaryLoc(pivot , arr + start , size);
+
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if(start<nels) locindex =binaryLoc_local(pivot, arr+start, size ,lmem,local_doub_size,first,last);
 		int element_index = arr_start + subitem;
 		index = element_index + locindex;
 		out[index] = pivot;
@@ -863,6 +945,42 @@ kernel void local_count_sort_vectlmemV2(global int4 * restrict arr,int nels, glo
 }
 
 kernel void local_count_sort_vectlmemV3(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
+	const int gi= get_global_id(0);
+	const int group_id = get_group_id(0);
+	int pivot;
+	const int li=get_local_id(0);
+	const int lws=get_local_size(0);
+	const int first_el = group_id*lws;
+	const int reading_quarts=(group_id == nels/lws ? (nels-(nels/lws)*lws)>>2 : lws>>2);
+	const int reading_place = (group_id * (lws>>2)) + li;
+	global int* restrict arr_scalar = (global int* )arr;
+	if(gi<nels){
+		pivot = arr_scalar[gi];
+		if(li<reading_quarts){
+			lmem[li] = arr[reading_place];
+		}
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	int counter=0,repetition=0;
+	int4 counter4 = (int4)(0),repetition4 = (int4)(0);
+	if(gi<nels){
+		for(int i=0;i<(reading_quarts); i++){
+			const int4 compar = lmem[i];
+			repetition4 -= compar == pivot ;
+			counter4 -= compar < pivot;
+		}
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if(gi<nels){
+		repetition=repetition4.s0+repetition4.s1+repetition4.s2+repetition4.s3; 
+		counter=counter4.s0+counter4.s1+counter4.s2+counter4.s3;
+		for(int i = first_el + counter; i < first_el + counter + repetition; i++){
+			res[i]=pivot;
+		}
+	}
+}
+
+kernel void stable_local_count_sort_vectlmemV3(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
 	const int gi= get_global_id(0);
 	const int group_id = get_group_id(0);
 	int pivot;

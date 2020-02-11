@@ -14,8 +14,8 @@
   
   
 void controlinput(char** argv, int argc){
-	if(argc<3){
-		fprintf(stderr,"usage: %s numero_elementi lws\n",argv[0]);
+	if(argc<4){
+		fprintf(stderr,"usage: %s numero_elementi lws localmemorysize\n",argv[0]);
 		exit(1);
 	}
 }
@@ -100,7 +100,7 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 }
 
 cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
-	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size)
+	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size,cl_int local_size)
 {
 	const size_t workitem=round_mul_up((nels)>>1,current_merge_size); 
 	const size_t gws[] = { round_mul_up(workitem, round_mul_up(_lws, gws_align_init) ) };
@@ -118,6 +118,10 @@ cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue qu
 	ocl_check(err, "set mergeeinit arg2", i-1);
 	err = clSetKernelArg(sortinit_k, i++, sizeof(current_merge_size),&current_merge_size);
 	ocl_check(err, "set mergeinit arg4",i-1);
+	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*local_size*2,NULL);
+	ocl_check(err, "set merge localmemory arg",i-1);
+	err = clSetKernelArg(sortinit_k, i++, sizeof(local_size), &local_size);
+	ocl_check(err, "set mergeeinit argfin", i-1);
 
 	err = clEnqueueNDRangeKernel(que, sortinit_k, 1,
 		NULL, gws, lws,
@@ -143,6 +147,7 @@ int main(int argc,char** argv){
 	cl_int nels= atoi(argv[1]);
 	const size_t memsize = nels*sizeof(cl_int);
 	cl_int lws = atoi(argv[2]);
+	cl_int localsize = atoi(argv[3]);
 	if(nels & 3){
 		printf("number of elements must be a multiple of 4\n");
 		exit(1);
@@ -159,7 +164,7 @@ int main(int argc,char** argv){
 	ocl_check(err, "create kernel vecinit");
 	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV3", &err);
 	ocl_check(err, "create kernel miocountsort");
-	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepHalfParallelV2", &err);
+	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepHalfParallelV3local", &err);
 	ocl_check(err, "create kernel merging");
 	
 
@@ -212,7 +217,7 @@ int main(int argc,char** argv){
 	while(current_merge_size<nels){
 		if(turn ==0){
 			turn = 1;
-			merge_evt2 = sortparallelmerge(sort_merge_k, lws, que, d_Sort1,d_Sort2, nels, merge_evt1,current_merge_size);
+			merge_evt2 = sortparallelmerge(sort_merge_k, lws, que, d_Sort1,d_Sort2, nels, merge_evt1,current_merge_size,localsize);
 			clWaitForEvents(1, &merge_evt2);
 
 			const double runtime_merge_ms = runtime_ms(merge_evt2);
@@ -233,7 +238,7 @@ int main(int argc,char** argv){
 		}
 		else{
 			turn = 0;
-			merge_evt1 = sortparallelmerge(sort_merge_k, lws, que, d_Sort2,d_Sort1, nels, merge_evt2,current_merge_size);
+			merge_evt1 = sortparallelmerge(sort_merge_k, lws, que, d_Sort2,d_Sort1, nels, merge_evt2,current_merge_size,localsize);
 			clWaitForEvents(1, &merge_evt1);
 			const double runtime_merge_ms = runtime_ms(merge_evt1);
 			total_time_merge += runtime_merge_ms;
