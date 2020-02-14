@@ -171,10 +171,11 @@ inline int binaryIndex(int pivot,global int* find1, int size){
         if(pivot<find1[0])return 0;
         int l=0 ,m, r=size-1 ;
         while (l <= r ) { 
-                m = l + ((r - l)>> 1); 
-                if ((m+1)<(size) && (pivot > find1[m]) && (find1[m+1] >= pivot)) 
+                m = l + ((r - l)>> 1);
+	       	int confront1 = find1[m];	
+                if ((m+1)<(size) && (pivot > confront1) && (find1[m+1] >= pivot)) 
                     return m+1; 
-                if ((find1[m] < pivot) ) 
+                if ((confront1 < pivot) ) 
                     l = m + 1; 
                 else
                     r = m - 1; 
@@ -205,7 +206,7 @@ inline int binaryIndexV2(int pivot,global int* find1, int size,int condition,int
 
 inline int binaryLoc(int pivot, global int* find1, int size){
 	int pos = 0;
-	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
+	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence, solo per size potenze di due
 	{
 		int j = pos+inc-1;
 		int confront2 = find1[j];
@@ -215,7 +216,48 @@ inline int binaryLoc(int pivot, global int* find1, int size){
 	return pos;
 }
 
-inline int binaryLoc_local(int pivot, global int* find1, int size,local int2* lmem, int localsize,int first,int last){
+inline int binaryIndexPower(int pivot,global int* find1, int size){
+        int l=0 ,m, r=size-1 ;
+        while (l <= r ) { 
+                m = l + ((r - l)>> 1);
+	       	int confront1 = find1[m];	
+                if ((m+1)<(size) && (pivot > confront1) && (find1[m+1] >= pivot)) 
+                    return m+1; 
+                if ((confront1 < pivot) ) 
+                    l = m + 1; 
+                else
+                    r = m - 1; 
+        }
+	return (m<size-1 ? m : size); 
+}
+
+inline int binaryIndexFullPower(int pivot,global int* find1, int size){
+        int l=0 ,m, r=size-1;
+        while (l<=r ){
+                m = l + ((r - l)>> 1);
+                int confront1 = find1[m];
+                if ((confront1 < pivot) )
+                    l = m +1;
+                else
+                    r = m -1;
+        }
+        return  l;
+}
+
+inline int binaryIndexFullPower_corr(char condition,int pivot,global int* find1, int size){
+        int l=0 ,m, r=size-1;
+        while (l<=r ){
+                m = l + ((r - l)>> 1);
+                int confront1 = find1[m];
+                if ((confront1 < pivot)||(condition && confront1 == pivot) )
+                    l = m +1;
+                else
+                    r = m -1;
+        }
+        return  l;
+}
+
+/*inline int binaryLoc_local(int pivot, global int* find1, int size,local int2* lmem, int localsize){
 	int pos = 0;
 	float normalizer = (localsize-1) / (float)(size-1); 
 	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
@@ -223,14 +265,139 @@ inline int binaryLoc_local(int pivot, global int* find1, int size,local int2* lm
 		int j = pos+inc-1;
 		//normalize in local memory
 		const int localplace =  normalizer * j;
+		int confront2;
+		const int2 temp1 =(int2)( find1[j],j);
+		confront2 = temp1.x;
+		lmem[localplace] = temp1;
+		pos += (confront2 < pivot)  ? inc:0;
+		pos = min(pos,size);
+	}
+		printf("dai che sono aiuto %i \n",get_local_id(0));
+		printarrlocal(lmem,localsize*2);
+	return pos;
+}*/
+
+/*inline int binaryLoc_local_blocks(int pivot, global int* find1, int size,local int* lmem, int localsize){
+	int pos = 0;
+	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
+	{
+		int j = pos+inc-1;
+		int confront2 = (j<localsize ? lmem[j] : find1[j]);
+		pos += (confront2 < pivot)  ? inc:0;
+		pos = min(pos,size);
+	}
+	return pos;
+}*/
+
+
+inline int binaryIndex_local_blocks(int pivot,global int* find1, int size,local int* lmem, int localsize){
+        int l=0 ,m, r=size-1;
+        while (l<=r ){
+                m = l + ((r - l)>> 1);
+                int confront1 =(m<localsize ? lmem[m] : find1[m]);
+		//printf("sto confrontando pivot %i con %i\n",pivot,confront1);
+                if ((confront1 < pivot) )
+                    l = m +1;
+                else
+                    r = m -1;
+        }
+        return  l;
+}
+
+inline int binaryIndex_local_blocks_corr(char condition,int pivot,global int* find1, int size,local int* lmem, int localsize){
+        int l=0 ,m, r=size-1;
+        while (l<=r ){
+                m = l + ((r - l)>> 1);
+                int confront1 =(m<localsize ? lmem[m] : find1[m]);
+		//printf("sto confrontando pivot %i con %i\n",pivot,confront1);
+                if ((confront1 < pivot) || (condition && confront1==pivot))
+                    l = m +1;
+                else
+                    r = m -1;
+        }
+        return  l;
+}
+
+inline int binaryIndex_local_with_HASH(int pivot,global int* find1, int size,local int2* lmem, int localsize){
+        int l=0 ,m, r=size-1;
+	float normalizer = (localsize-1) / (float)(size-1); 
+        while (l<=r ){
+                m = l + ((r - l)>> 1);
+                int confront1 ;
+		const int localplace =  normalizer * m;
+		const int2 comp1 = lmem[localplace];
+			//if(get_global_id(0))printf("dai per %i %i\n",comp1.x,localplace);
+	       	if(comp1.x != INT_MAX){
+			//if(get_global_id(0)==0)printf("ciao aiutami %i\n",comp1.x);
+			confront1 = (comp1.y == m)? comp1.x:find1[m];
+		}
+		else{
+			//if(get_global_id(0)==0)printarrlocal(lmem,localsize*2);
+			const int2 temp1 =(int2)( find1[m],m);
+			confront1 = temp1.x;
+			lmem[localplace] = temp1;
+			barrier(CLK_LOCAL_MEM_FENCE);
+		}
+		//printf("sto confrontando pivot %i con %i\n",pivot,confront1);
+                if ((confront1 < pivot) )
+                    l = m +1;
+                else
+                    r = m -1;
+        }
+        return  l;
+}
+
+inline int binaryIndex_local_HASH_corr(char condition,int pivot,global int* find1, int size,local int2* lmem, int localsize){
+        int l=0 ,m, r=size-1;
+	float normalizer = (localsize-1) / (float)(size-1); 
+        while (size>>=1){
+                m = l + ((r - l)>> 1);
+                int confront1 ;
+		const int localplace =  normalizer * m;
 		barrier(CLK_LOCAL_MEM_FENCE);
+		const int2 comp1 = lmem[localplace];
+			//if(get_global_id(0))printf("dai per %i %i\n",comp1.x,localplace);
+	       	if(comp1.y == m){
+			//if(get_global_id(0)==0)printf("ciao aiutami %i\n",comp1.x);
+			confront1 =  comp1.x;
+		}
+		else{
+			//if(get_global_id(0)==0)printarrlocal(lmem,localsize*2);
+			const int2 temp1 =(int2)( find1[m],m);
+			confront1 = temp1.x;
+			lmem[localplace] = temp1;
+			barrier(CLK_LOCAL_MEM_FENCE);
+		}
+		//printf("sto confrontando pivot %i con %i\n",pivot,confront1);
+                if ((confront1 < pivot) )
+                    l = m +1;
+                else
+                    r = m -1;
+        }
+        return  l;
+}
+
+/*inline int binaryLoc_local_with_HASH(int pivot, global int* find1, int size,local int2* lmem, int localsize){
+	int pos = 0;
+	float normalizer = (localsize-1) / (float)(size-1); 
+		//if(get_global_id(0)==0)printarrlocal(lmem,localsize*2);
+			//if(get_global_id(0)==0)printf("whela %f %i\n",normalizer,size);
+	for (int inc=size;inc>0;inc>>=1) // binary search in the sub-sequence
+	{
+		int j = pos+inc-1;
+			//if(get_global_id(0)==0)printf("dimmelo esisti o no%i %i\n",inc,j);
+		//normalize in local memory
+		const int localplace =  normalizer * j;
 		const int2 comp1 = lmem[localplace];
 		barrier(CLK_LOCAL_MEM_FENCE);
 		int confront2;
-	       	if(comp1.x!=INT_MAX){
+			//if(get_global_id(0))printf("dai per %i %i\n",comp1.x,localplace);
+	       	if(comp1.x ^ INT_MAX){
+			//if(get_global_id(0)==0)printf("ciao aiutami %i\n",comp1.x);
 			confront2 = (comp1.y == j)? comp1.x:find1[j];
 		}
 		else{
+			//if(get_global_id(0)==0)printarrlocal(lmem,localsize*2);
 			const int2 temp1 =(int2)( find1[j],j);
 			confront2 = temp1.x;
 			lmem[localplace] = temp1;
@@ -239,8 +406,9 @@ inline int binaryLoc_local(int pivot, global int* find1, int size,local int2* lm
 		pos += (confront2 < pivot)  ? inc:0;
 		pos = min(pos,size);
 	}
+		//if(get_global_id(0)==0)printarrlocal(lmem,localsize*2);
 	return pos;
-}
+}*/
 
 inline int binaryLoc_corr(int li,int pivot, global int* find1, int size){
 	int pos = 0;
@@ -298,15 +466,16 @@ kernel void mergebinaryWithRepParallelV3(global int * out ,global int* arr,int n
 	const int lws = get_local_size(0);
 	const int subsetid = gi/subsize;
 	int start,end,index;
-	if((subsetid & 1)){
+	char condition = subsetid & 1;
+	if(condition){
 		start = (subsetid - 1) * subsize;
 	} else{
 		start = (subsetid + 1) * subsize;
 	}
 	end = (start + subsize) < nels ? start + subsize : nels;
 	int locindex=0;
-	if(start<nels) locindex = binaryLoc_corr2(subsetid & 1,arr[gi],arr + start , end - start);
-	index=(gi-(subsetid & 1 ? subsize : 0))+locindex;
+	if(start<nels) locindex = binaryLoc_corr2(condition,arr[gi],arr + start , end - start);
+	index=(gi-(condition ? subsize : 0))+locindex;
 	out[index] = arr[gi];
 	
 }
@@ -327,10 +496,106 @@ kernel void mergebinaryWithRepParallelV2(global int * restrict out ,global int* 
 	end = (start + subsize) < nels ? start + subsize : nels;
 	const int first_index = gi -(condition*subsize);  //the elements in the array that are already minors of the pivot, startindex already inside
 	int locindex=0;
-	if(start<nels) locindex = binaryIndexV2(arr[gi],arr + start , end - start,condition,gi);
+	
+	
+	if(start<nels) locindex = binaryLoc_corr2(condition,arr[gi],arr + start , end - start);
 	index = first_index + locindex;
 	//if(gi<8)printf("ciao sono %i start %i end %i valore %i minori %i pos finale %i,  ho sx %i e dx %i condition %i\n",gi,start,end,arr[gi],locindex,index,arr[start+locindex-1],arr[start+locindex+1],condition);
 	out[index] = arr[gi];
+}
+
+kernel void mergebinaryWithRepParallelV3local(global int * out ,global int* arr,int nels, int subsize, local int* lmem,int local_subsize ){
+        const int gi = get_global_id(0);
+	if(gi>=nels)return;
+	const int lws = get_local_size(0);
+	const int subsetid = gi/subsize;
+	const int li = get_local_id(0);
+	int start,end,index;
+	local int first,last;
+	char condition= subsetid &1;
+	const int pivot = arr[gi];
+	//if(gi==0)printarr(arr,nels);
+	if((condition)){
+		start = (subsetid - 1) * subsize;
+	} else{
+		start = (subsetid + 1) * subsize;
+	}
+	end = (start + subsize) < nels ? start + subsize : nels;
+	int size = ((start + subsize) < nels ? subsize : nels - start);
+	int locindex=0;
+	//caricamento dei dati a cui siamo interessati in local memory
+	if(li==0){
+		first= binaryIndexFullPower_corr(condition,pivot, arr+start, size);
+
+	}
+		//printarrlocal(lmem,local_doub_size*2);
+		//if(gi == 0)printf("dai che ci siamo sto casso\n");
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if(li==get_local_size(0)-1){ 
+		last =binaryIndexFullPower_corr(condition,pivot, arr+start+first, size - first);
+
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	//carichiamo in local memory una parte dell'array dove cercare
+	for(unsigned stride=0;stride <local_subsize && stride<=last;stride+=lws){
+		int locplace=li+stride;
+		if(locplace<last)lmem[locplace] = arr[start+first+li+stride];
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	//if(gi==0){printf("gi%igi",gi);printarrlocal(lmem,local_subsize);}
+	if(start<nels) locindex = binaryIndex_local_blocks_corr(condition,pivot,arr + start + first , last,lmem,local_subsize);
+	index=(gi-(condition ? subsize : 0))+locindex + first;
+	//if(gi<8)printf("ciao sono %i   start %i valore %i minori %i pos finale %i,first %i last %i\n",gi,start,pivot,locindex,index,first,last);
+	out[index] = pivot;
+	//problema di numeri ripetuti che si trovano in posizioni che differiscono di un posto nei rispettivi subarray
+	
+}
+
+kernel void mergebinaryWithRepParallelV4local(global int * out ,global int* arr,int nels, int subsize, local int2* lmem,int local_subsize ){
+        const int gi = get_global_id(0);
+	if(gi>=nels)return;
+	const int lws = get_local_size(0);
+	const int subsetid = gi/subsize;
+	const int li = get_local_id(0);
+	int start,end,index;
+	local int first,last;
+	char condition= subsetid &1;
+	const int pivot = arr[gi];
+	if(gi==0)printarr(arr,nels);
+	if((condition)){
+		start = (subsetid - 1) * subsize;
+	} else{
+		start = (subsetid + 1) * subsize;
+	}
+	end = (start + subsize) < nels ? start + subsize : nels;
+	int size = ((start + subsize) < nels ? subsize : nels - start);
+	int locindex=0;
+	//caricamento dei dati a cui siamo interessati in local memory
+	if(li==0){
+		first= binaryIndexFullPower_corr(condition,pivot, arr+start, size);
+
+	}
+		//printarrlocal(lmem,local_doub_size*2);
+		//if(gi == 0)printf("dai che ci siamo sto casso\n");
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if(li==get_local_size(0)-1){ 
+		last =binaryIndexFullPower_corr(condition,pivot, arr+start+first, size - first);
+
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	//carichiamo in local memory una parte dell'array dove cercare
+	for(unsigned stride=0;stride <local_subsize && stride<=last;stride+=lws){
+		int locplace=li+stride;
+		if(locplace<last)lmem[locplace] = (int2)(0,-1);
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if(gi==0){printf("gi%igi",gi);printarrlocal(lmem,local_subsize);}
+	if(start<nels) locindex = binaryIndex_local_HASH_corr(condition,pivot,arr + start + first , last,lmem,local_subsize);
+	index=(gi-(condition ? subsize : 0))+locindex + first;
+	if(gi<8)printf("ciao sono %i   start %i valore %i minori %i pos finale %i,first %i last %i\n",gi,start,pivot,locindex,index,first,last);
+	out[index] = pivot;
+	//problema di numeri ripetuti che si trovano in posizioni che differiscono di un posto nei rispettivi subarray
+	
 }
 
 kernel void mergebinaryWithRepHalfParallel(global int * out ,global int* arr,int nels, int subsize ){
@@ -424,56 +689,133 @@ kernel void mergebinaryWithRepHalfParallelV3local(global int * out ,global int* 
 	if(gi>=round_mul_up((nels)>>1,subsize))return;
 	const int gws = get_global_size(0);
 	const int li = get_local_id(0);
+	const int lws = get_local_size(0);
+	lmem[li]=(int2)(INT_MAX,-1);
 	short subindex = 0;
 	for(int shiftsize=subsize;shiftsize>1;shiftsize>>=1)subindex++;
 	//questo algoritmo richiede che la subsize sia una potenza di 2, altrimenti diventa difficile calcolare gli indici
-	int subitem = gi & (subsize-1);
+	int subitem = gi & (subsize-1),pivot=INT_MAX;
 	//arr_start è il punto dove devono lavorare i (subsize) workitem, non ho trovato un modo per ora di risolvere la lettura fuori dall'array se non con una condizione 
 	const int arr_start = (gi>>subindex)*(subsize<<1);
 	local int first,last;
-	if(arr_start + subitem < nels){
-		int pivot = arr[arr_start + subitem];
-		int start = arr_start+subsize , index, size;
-		size = ((start + subsize) < nels ? subsize : nels - start);
-		int locindex=0;
-		if(li==0){
-			first = binaryLoc(pivot , arr + start , size);
+	if(arr_start + subitem < nels)
+		 pivot = arr[arr_start + subitem];
+	int start = arr_start+subsize , index, size;
+	size = ((start + subsize) < nels ? subsize : nels - start);
+	int locindex=0;
+	if(li==0){
+		first= binaryIndexPower(pivot, arr+start, size);
 
-		}
-		if(li==get_local_size(0)-1){ 
-			last = binaryLoc(pivot , arr + start , size);
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+		//printarrlocal(lmem,local_doub_size*2);
+		//if(gi == 0)printf("dai che ci siamo sto casso\n");
 
-		}
-		barrier(CLK_LOCAL_MEM_FENCE);
-		if(start<nels) locindex =binaryLoc_local(pivot, arr+start, size ,lmem,local_doub_size,first,last);
-		int element_index = arr_start + subitem;
-		index = element_index + locindex;
-		out[index] = pivot;
-		// index of the place in between the numbers(or at the end or start) where the pivot was "found"
-		int place_index = start + locindex - 1;
-		int current_index = index;
-		//deve copiare tutti gli elementi che sono minori del pivot e maggiori del suo elemento precedente
-		if(element_index > arr_start){
-			int comp_previous = arr[element_index-1],comp_other;
-			while(place_index>=start && arr[element_index-1]<=(comp_other=arr[place_index]) ){
-				out[--current_index]=comp_other;
-				place_index--;
-			}
-		}
-		//se è il primo elemento deve vedere se ci sono elementi minori nel secondo array e copiarli
-		if(!(subitem & (subsize - 1))){
-			while(place_index>= start)out[--current_index]=arr[place_index--];
-		}
-		//se è l'ultimo elemento deve vedere se ci sono elementi ancora non considerati e copiarli nell'array destinazione
-		if(subitem == subsize-1){
-			int repetition = start+locindex;
-			while(repetition< start + size){
-				out[++index]=arr[repetition++];
-			}
+	if(li==get_local_size(0)-1){ 
+		last = binaryIndexPower(pivot, arr+start+first, size - first);
+		//printarrlocal(lmem,local_doub_size*2);
+
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if(start<nels) locindex =binaryIndex_local_with_HASH(pivot, arr+start+first, last - first ,lmem,local_doub_size);
+	int element_index = arr_start + subitem;
+	index = element_index + locindex + first;
+	out[index] = pivot;
+	// index of the place in between the numbers(or at the end or start) where the pivot was "found"
+	int place_index = start + locindex - 1;
+	int current_index = index;
+	//deve copiare tutti gli elementi che sono minori del pivot e maggiori del suo elemento precedente
+	if(element_index > arr_start){
+		int comp_previous = arr[element_index-1],comp_other;
+		while(place_index>=start && arr[element_index-1]<=(comp_other=arr[place_index]) ){
+			out[--current_index]=comp_other;
+			place_index--;
 		}
 	}
+	//se è il primo elemento deve vedere se ci sono elementi minori nel secondo array e copiarli
+	if(!(subitem & (subsize - 1))){
+		while(place_index>= start)out[--current_index]=arr[place_index--];
+	}
+	//se è l'ultimo elemento deve vedere se ci sono elementi ancora non considerati e copiarli nell'array destinazione
+	if(subitem == subsize-1){
+		int repetition = start+locindex;
+		while(repetition< start + size){
+			out[++index]=arr[repetition++];
+		}
+	}
+	
 }
 
+kernel void mergebinaryWithRepHalfParallelV4local(global int * out ,global int* arr,int nels, int subsize ,local int* lmem, int local_doub_size){
+        const int gi = get_global_id(0);
+	if(gi>=round_mul_up((nels)>>1,subsize))return;
+	const int gws = get_global_size(0);
+	const int li = get_local_id(0);
+	const int lws = get_local_size(0);
+		
+	//if(gi==0)printarr(arr,nels);
+	short subindex = 0;
+	for(int shiftsize=subsize;shiftsize>1;shiftsize>>=1)subindex++;
+	//questo algoritmo richiede che la subsize sia una potenza di 2, altrimenti diventa difficile calcolare gli indici
+	int subitem = gi & (subsize-1),pivot=INT_MAX;
+	//arr_start è il punto dove devono lavorare i (subsize) workitem, non ho trovato un modo per ora di risolvere la lettura fuori dall'array se non con una condizione 
+	const int arr_start = (gi>>subindex)*(subsize<<1);
+	local int first,last;
+	if(gi <( nels>>1))
+		 pivot = arr[arr_start + subitem];
+	int start = arr_start+subsize , index, size;
+	size = ((start + subsize) < nels ? subsize : nels - start);
+	int locindex=0;
+	//troviamo indici di inizio e fine 
+	if(li==0){
+		first= binaryIndexPower(pivot, arr+start, size);
+
+	}
+		//printarrlocal(lmem,local_doub_size*2);
+		//if(gi == 0)printf("dai che ci siamo sto casso\n");
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if(li==get_local_size(0)-1){ 
+		last =binaryIndexPower(pivot, arr+start+first, size - first);
+
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	//carichiamo in local memory una parte dell'array dove cercare
+	for(unsigned stride=0;stride <local_doub_size && stride<=last;stride+=lws){
+		int locplace=li+stride;
+		if(locplace<last)lmem[locplace] = arr[start+first+li+stride];
+	}
+	//if(gi==0)printarr(arr,nels);
+	barrier(CLK_LOCAL_MEM_FENCE);
+	//if(gi==0){printf(" li%ili ",gi);printarrlocal(lmem,local_doub_size);}
+	if(start<nels) locindex = binaryIndex_local_blocks(pivot, arr+start+first, last ,lmem,local_doub_size);
+	int element_index = arr_start + subitem;
+	index = element_index + locindex + first; 
+	out[index] = pivot;
+	//if(gi<8)printf("ciao sono %i arr_start %i subitem %i start %i valore %i minori %i pos finale %i,first %i last %i\n",gi,arr_start,subitem,start,pivot,locindex,index,first,last);
+	// index of the place in between the numbers(or at the end or start) where the pivot was "found"
+	int place_index = start + first +  locindex - 1;
+	int current_index = index;
+	//deve copiare tutti gli elementi che sono minori del pivot e maggiori del suo elemento precedente
+	if(element_index > arr_start){
+		int comp_previous = arr[element_index-1],comp_other;
+		while(place_index>=start && arr[element_index-1]<=(comp_other=arr[place_index]) ){
+			out[--current_index]=comp_other;
+			place_index--;
+		}
+	}
+	//se è il primo elemento deve vedere se ci sono elementi minori nel secondo array e copiarli
+	if(!(subitem & (subsize - 1))){
+		while(place_index>= start)out[--current_index]=arr[place_index--];
+	}
+	//se è l'ultimo elemento deve vedere se ci sono elementi ancora non considerati e copiarli nell'array destinazione
+	if(subitem == subsize-1){
+		int repetition = start + first +locindex;
+		while(repetition< start + size){
+			out[++index]=arr[repetition++];
+		}
+	}
+	
+}
 
 //in teoria si potrebbe fare tutto il merge di tutti i sottogruppi, 
 //solo che ci vorrebbe una azione di sincronia tra i workitem 

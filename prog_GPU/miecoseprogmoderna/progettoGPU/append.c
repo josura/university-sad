@@ -11,7 +11,7 @@ int main(const int argc, const char** argv){
 	    perror("Error opening file.");
 	}
 	else {	
-		for(int i = 1;i<argc-1;i++){
+		for(int i = 2;i<argc-1;i++){
 			fprintf(pFile,"%s, ",argv[i]);
 		}
 		fprintf(pFile,"%s",argv[argc-1]);

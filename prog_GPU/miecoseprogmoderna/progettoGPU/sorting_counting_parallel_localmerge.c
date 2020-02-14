@@ -103,10 +103,10 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size,cl_int local_size)
 {
-	const size_t workitem=round_mul_up((nels)>>1,current_merge_size); 
+	const size_t workitem=round_mul_up((nels),current_merge_size); 
 	const size_t gws[] = { round_mul_up(workitem,_lws) };
 	const size_t lws[] = { _lws };
-	printf("merge gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
+	printf("merge nels gws_align workitem : %d | %zu = %zu \n", nels, gws_align_init, gws[0]);
 	cl_event sortinit_evt;
 	cl_int err;
 
@@ -119,9 +119,9 @@ cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue qu
 	ocl_check(err, "set mergeeinit arg2", i-1);
 	err = clSetKernelArg(sortinit_k, i++, sizeof(current_merge_size),&current_merge_size);
 	ocl_check(err, "set mergeinit arg4",i-1);
-	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*_lws*2,NULL);
+	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*local_size,NULL);
 	ocl_check(err, "set merge localmemory arg",i-1);
-	err = clSetKernelArg(sortinit_k, i++, sizeof(local_size), lws);
+	err = clSetKernelArg(sortinit_k, i++, sizeof(local_size), &local_size);
 	ocl_check(err, "set mergeeinit argfin", i-1);
 
 	err = clEnqueueNDRangeKernel(que, sortinit_k, 1,
@@ -165,7 +165,7 @@ int main(int argc,char** argv){
 	ocl_check(err, "create kernel vecinit");
 	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV3", &err);
 	ocl_check(err, "create kernel miocountsort");
-	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepHalfParallelV3local", &err);
+	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepParallelV3local", &err);
 	ocl_check(err, "create kernel merging");
 	
 
@@ -201,14 +201,14 @@ int main(int argc,char** argv){
         init_evt = vecinit_random(vecinit_k, que, d_Sort1, nels );
         cl_int *h_Sort; 
         sort_evt = sortparallel(sort_k, lws, que, d_Sort1,  nels ,init_evt);
-	h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
+	/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
 			CL_MAP_READ,
 			0, memsize,
                 	1, &sort_evt, &read_evt, &err);
 	ocl_check(err,"map buffer d_Sort1 init");
 
 	clWaitForEvents(1, &read_evt);
-	printarr(h_Sort,nels);
+	printarr(h_Sort,nels);*/
 
 	int turn=0;	
 	double total_time_merge=0;
@@ -275,7 +275,7 @@ int main(int argc,char** argv){
 		ocl_check(err,"map buffer d_Sort2");
 	}
 	clWaitForEvents(1, &read_evt);
-	printarr(h_Sort,nels);
+	//printarr(h_Sort,nels);
 	verify(h_Sort,nels);
 	const double runtime_init_ms = runtime_ms(init_evt);
 	const double runtime_sort_ms = runtime_ms(sort_evt);
