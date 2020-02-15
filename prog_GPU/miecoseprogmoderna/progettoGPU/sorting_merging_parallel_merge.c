@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
-
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #define CL_TARGET_OPENCL_VERSION 120
 #include "ocl_boiler.h"
 
@@ -26,6 +28,11 @@ void printarr(int* arr,unsigned int nels){
 
 }
 
+int doesFileExist(const char *filename) {
+    struct stat st;
+    int result = stat(filename, &st);
+    return result == 0;
+}
 
 size_t gws_align_init;
 size_t gws_align_sort;
@@ -66,9 +73,8 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	cl_mem d_v1, cl_int nels, cl_event init_event)
 {
 	const size_t workitem=nels; 
-	const size_t gws[] = { round_mul_up(workitem, round_mul_up(_lws, gws_align_init) ) };
-	const size_t lws[] = { round_mul_up(_lws, gws_align_init) };
-	printf("sort_base gws,lws e workitem : %d %d | %zu = %zu  %li\n", nels,lws[0], gws_align_init, gws[0],workitem);
+	const size_t gws[] = { round_mul_up(workitem,_lws ) };
+	const size_t lws[] = {_lws };
 	cl_event sortinit_evt;
 	cl_int err;
 
@@ -95,8 +101,8 @@ cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue qu
 	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size)
 {
 	const size_t workitem=nels; 
-	const size_t gws[] = { round_mul_up(workitem, round_mul_up(_lws, gws_align_init) ) };
-	const size_t lws[] = { round_mul_up(_lws, gws_align_init) };
+	const size_t gws[] = { round_mul_up(workitem, _lws ) };
+	const size_t lws[] = {_lws };
 	printf("merge gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
 	cl_event sortinit_evt;
 	cl_int err;
@@ -147,7 +153,7 @@ int main(int argc,char** argv){
 	ocl_check(err, "create kernel vecinit");
 	cl_kernel sort_k = clCreateKernel(prog, "ParallelMerge_Local", &err);
 	ocl_check(err, "create kernel miocountsort");
-	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepParallelV3", &err);
+	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryWithRepParallelV4", &err);
 	ocl_check(err, "create kernel merging");
 	
 
@@ -182,24 +188,15 @@ int main(int argc,char** argv){
 
         init_evt = vecinit_random(vecinit_k, que, d_Sort1, nels );
         cl_int *h_Sort; 
-	h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
-			CL_MAP_READ,
-			0, memsize,
-                	1, &init_evt, &read_evt, &err);
-	ocl_check(err,"map buffer d_Sort1 init");
-
-	clWaitForEvents(1, &read_evt);
-	printarr(h_Sort,nels);
-
         sort_evt = sortparallel(sort_k, lws, que, d_Sort1,  nels ,init_evt);
-	h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
+	/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
 			CL_MAP_READ,
 			0, memsize,
                 	1, &sort_evt, &read_evt, &err);
 	ocl_check(err,"map buffer d_Sort1 init");
 
 	clWaitForEvents(1, &read_evt);
-	printarr(h_Sort,nels);
+	printarr(h_Sort,nels);*/
 
 	int turn=0;	
 	double total_time_merge=0;
@@ -216,14 +213,14 @@ int main(int argc,char** argv){
 			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort2: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
-			h_Sort = clEnqueueMapBuffer(que, d_Sort2, CL_FALSE,
+			/*h_Sort = clEnqueueMapBuffer(que, d_Sort2, CL_FALSE,
 				CL_MAP_READ,
 				0, memsize,
 				1, &merge_evt2, &read_evt, &err);
 			ocl_check(err,"map buffer d_Sort1 init");
 
 			clWaitForEvents(1, &read_evt);
-			printarr(h_Sort,nels);
+			printarr(h_Sort,nels);*/
 			
 
 		}
@@ -236,7 +233,7 @@ int main(int argc,char** argv){
 			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort1: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
-			h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
+			/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
 				CL_MAP_READ,
 				0, memsize,
 				1, &merge_evt1, &read_evt, &err);
@@ -244,7 +241,7 @@ int main(int argc,char** argv){
 
 			clWaitForEvents(1, &read_evt);
 			printarr(h_Sort,nels);
-			
+			*/
 
 
 		}
@@ -264,7 +261,7 @@ int main(int argc,char** argv){
 		ocl_check(err,"map buffer d_Sort2");
 	}
 	clWaitForEvents(1, &read_evt);
-	printarr(h_Sort,nels);
+	//printarr(h_Sort,nels);
 	verify(h_Sort,nels);
 	const double runtime_init_ms = runtime_ms(init_evt);
 	const double runtime_sort_ms = runtime_ms(sort_evt);
@@ -294,5 +291,23 @@ int main(int argc,char** argv){
 	clReleaseProgram(prog);
 	clReleaseCommandQueue(que);
 	clReleaseContext(ctx);
+	if( ! doesFileExist( "sorting.csv") ) {
+		FILE* pFile;
+		pFile=fopen("sorting.csv", "w");
+
+	   	if(pFile==NULL) {
+		    perror("Error opening file.");
+		}
+		else {
+			fprintf(pFile,"nome, nels, runtime, bandwidth\n");
+		}
+		fclose(pFile);
+
+	}
+	char buffer[256];
+	sprintf(buffer,"%i, %g, %g",nels,runtime_sort_ms + total_time_merge,merge_bw_gbs);
+	execlp("./append_mio", "./append_mio","sorting.csv" ,argv[0],buffer, (char*)NULL);
+        perror("append_dati_fallito");
+
 	
 }

@@ -140,7 +140,7 @@ int main(int argc,char** argv){
 
 	cl_kernel vecinit_k = clCreateKernel(prog, "vecinit", &err);
 	ocl_check(err, "create kernel vecinit");
-	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV2", &err);
+	cl_kernel sort_k = clCreateKernel(prog, "local_count_sort_vectlmemV3", &err);
 	ocl_check(err, "create kernel miocountsort");
 	cl_kernel sort_merge_k = clCreateKernel(prog, "mergebinaryNoRepParallel", &err);
 	ocl_check(err, "create kernel merging");

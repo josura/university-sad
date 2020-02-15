@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
-
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #define CL_TARGET_OPENCL_VERSION 120
 #include "ocl_boiler.h"
 
@@ -13,7 +15,7 @@
   
 void controlinput(char** argv, int argc){
 	if(argc<3){
-		fprintf(stderr,"usage: %s numero_elementi lws\n",argv[0]);
+		fprintf(stderr,"usage: %s numero_elementi lws \n",argv[0]);
 		exit(1);
 	}
 }
@@ -24,6 +26,12 @@ void printarr(int* arr,unsigned int nels){
 			}
 		printf("\n");
 
+}
+
+int doesFileExist(const char *filename) {
+    struct stat st;
+    int result = stat(filename, &st);
+    return result == 0;
 }
 
 
@@ -285,5 +293,23 @@ int main(int argc,char** argv){
 	clReleaseProgram(prog);
 	clReleaseCommandQueue(que);
 	clReleaseContext(ctx);
+	if( ! doesFileExist( "sorting.csv") ) {
+		FILE* pFile;
+		pFile=fopen("sorting.csv", "w");
+
+	   	if(pFile==NULL) {
+		    perror("Error opening file.");
+		}
+		else {
+			fprintf(pFile,"nome, nels, runtime, bandwidth\n");
+		}
+		fclose(pFile);
+
+	}
+	char buffer[256];
+	sprintf(buffer,"%i, %g, %g",nels,runtime_sort_ms + total_time_merge,merge_bw_gbs);
+	execlp("./append_mio", "./append_mio","sorting.csv" ,argv[0],buffer, (char*)NULL);
+        perror("append_dati_fallito");
 	
+
 }

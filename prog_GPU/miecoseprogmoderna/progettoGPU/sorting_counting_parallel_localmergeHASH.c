@@ -119,7 +119,7 @@ cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue qu
 	ocl_check(err, "set mergeeinit arg2", i-1);
 	err = clSetKernelArg(sortinit_k, i++, sizeof(current_merge_size),&current_merge_size);
 	ocl_check(err, "set mergeinit arg4",i-1);
-	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*local_size,NULL);
+	err = clSetKernelArg(sortinit_k, i++, sizeof(cl_int)*local_size*2,NULL);
 	ocl_check(err, "set merge localmemory arg",i-1);
 	err = clSetKernelArg(sortinit_k, i++, sizeof(local_size), &local_size);
 	ocl_check(err, "set mergeeinit argfin", i-1);
@@ -276,7 +276,7 @@ int main(int argc,char** argv){
 	}
 	clWaitForEvents(1, &read_evt);
 	//printarr(h_Sort,nels);
-	verify(h_Sort,nels);
+	//verify(h_Sort,nels);
 	const double runtime_init_ms = runtime_ms(init_evt);
 	const double runtime_sort_ms = runtime_ms(sort_evt);
 	const double runtime_read_ms = runtime_ms(read_evt);
@@ -305,9 +305,9 @@ int main(int argc,char** argv){
 	clReleaseProgram(prog);
 	clReleaseCommandQueue(que);
 	clReleaseContext(ctx);
-	if( ! doesFileExist( "sorting_counting_HALF.csv") ) {
+	if( ! doesFileExist( "sorting.csv") ) {
 		FILE* pFile;
-		pFile=fopen("sorting_counting_HALF.csv", "w");
+		pFile=fopen("sorting.csv", "w");
 
 	   	if(pFile==NULL) {
 		    perror("Error opening file.");
@@ -320,7 +320,7 @@ int main(int argc,char** argv){
 	}
 	char buffer[256];
 	sprintf(buffer,"%i, %g, %g",nels,runtime_sort_ms + total_time_merge,merge_bw_gbs);
-	execlp("./append_mio", "./append_mio","sorting_counting_HALF.csv" ,argv[0],buffer, (char*)NULL);
+	execlp("./append_mio", "./append_mio","sorting.csv" ,argv[0],buffer, (char*)NULL);
         perror("append_dati_fallito");
 	
 }

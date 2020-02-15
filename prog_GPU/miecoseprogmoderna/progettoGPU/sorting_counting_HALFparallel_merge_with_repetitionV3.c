@@ -299,9 +299,9 @@ int main(int argc,char** argv){
 	clReleaseProgram(prog);
 	clReleaseCommandQueue(que);
 	clReleaseContext(ctx);
-	if( ! doesFileExist( "sorting_counting_HALF.csv") ) {
+	if( ! doesFileExist( "sorting.csv") ) {
 		FILE* pFile;
-		pFile=fopen("sorting_counting_HALF.csv", "w");
+		pFile=fopen("sorting.csv", "w");
 
 	   	if(pFile==NULL) {
 		    perror("Error opening file.");
@@ -314,7 +314,6 @@ int main(int argc,char** argv){
 	}
 	char buffer[256];
 	sprintf(buffer,"%i, %g, %g",nels,runtime_sort_ms + total_time_merge,merge_bw_gbs);
-	execlp("./append_mio", "./append_mio","sorting_counting_HALF.csv" ,buffer, (char*)NULL);
+	execlp("./append_mio", "./append_mio","sorting.csv" ,argv[0],buffer, (char*)NULL);
         perror("append_dati_fallito");
-	
 }
