@@ -202,7 +202,7 @@ int main(int argc,char** argv){
 	clWaitForEvents(1, &read_evt);
 	printarr(h_Sort,nels);*/
 
-	int turn=0;	
+	int turn=0,pass=1;	
 	double total_time_merge=0;
 	int current_merge_size = lws1;
 	merge_evt1=sort_evt;
@@ -250,6 +250,7 @@ int main(int argc,char** argv){
 
 		}
 		current_merge_size<<=1;
+		pass++;
 	}
 	if(turn == 0){
 		h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
@@ -274,7 +275,7 @@ int main(int argc,char** argv){
 
 	const double init_bw_gbs = 1.0*memsize/1.0e6/runtime_init_ms;
 	const double sort_bw_gbs = memsize*log2(nels)/1.0e6/runtime_sort_ms;
-	const double merge_bw_gbs = memsize*log2(nels)/1.0e6/total_time_merge;
+	const double merge_bw_gbs = pass*memsize*log2(nels)/1.0e6/total_time_merge;
 
 	const double read_bw_gbs = memsize/1.0e6/runtime_read_ms;
 
@@ -310,8 +311,8 @@ int main(int argc,char** argv){
 
 	}
 	char buffer[256];
-	sprintf(buffer,"%i, %g, %g",nels,runtime_sort_ms + total_time_merge,merge_bw_gbs);
-	execlp("./append_mio", "./append_mio","sorting.csv" ,argv[0],buffer, (char*)NULL);
+	sprintf(buffer,"%i, %g, %g",nels,runtime_sort_ms ,merge_bw_gbs);
+	execlp("./append_mio", "./append_mio","sorting.csv" ,"sorting_counting",buffer, (char*)NULL);
         perror("append_dati_fallito");
 
 }

@@ -83,7 +83,7 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size) {
 	const size_t workitem=nels; 
-	const size_t gws[] = { round_mul_up(workitem, gws_align_init) };
+	const size_t gws[] = { round_mul_up(workitem,_lws ) };
 	const size_t lws[] = { _lws };
 	printf("init gws e workitem : %d | %zu = %zu  %li\n", nels, gws_align_init, gws[0],workitem);
 	cl_event sortinit_evt;

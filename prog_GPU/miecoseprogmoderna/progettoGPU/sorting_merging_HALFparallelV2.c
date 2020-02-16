@@ -200,7 +200,7 @@ int main(int argc,char** argv){
 	clWaitForEvents(1, &read_evt);
 	printarr(h_Sort,nels);*/
 
-	int turn=0;	
+	int turn=0,pass=1;	
 	double total_time_merge=0;
 	int current_merge_size = lws;
 	merge_evt1=sort_evt;
@@ -232,7 +232,7 @@ int main(int argc,char** argv){
 			clWaitForEvents(1, &merge_evt1);
 			const double runtime_merge_ms = runtime_ms(merge_evt1);
 			total_time_merge += runtime_merge_ms;
-			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
+			const double merge_bw_gbs =memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort1: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
 			/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
@@ -248,6 +248,7 @@ int main(int argc,char** argv){
 
 		}
 		current_merge_size<<=1;
+		pass++;
 	}       
        	if(turn == 0){
 		h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
@@ -271,7 +272,7 @@ int main(int argc,char** argv){
 
 	const double init_bw_gbs = 1.0*memsize/1.0e6/runtime_init_ms;
 	const double sort_bw_gbs = memsize*log2(nels)/1.0e6/runtime_sort_ms;
-	const double merge_bw_gbs = memsize*log2(nels)/1.0e6/total_time_merge;
+	const double merge_bw_gbs =pass* memsize*log2(nels)/1.0e6/total_time_merge;
 
 	const double read_bw_gbs = memsize/1.0e6/runtime_read_ms;
 
