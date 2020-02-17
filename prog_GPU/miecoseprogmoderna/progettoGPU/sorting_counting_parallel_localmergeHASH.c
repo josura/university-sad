@@ -313,14 +313,13 @@ int main(int argc,char** argv){
 		    perror("Error opening file.");
 		}
 		else {
-			fprintf(pFile,"nome, nels, runtime, bandwidth\n");
+			fprintf(pFile,"nome, nels,runtime_leaves, runtime_tot, bandwidth\n");
 		}
 		fclose(pFile);
 
 	}
 	char buffer[256];
-	sprintf(buffer,"%i, %g, %g",nels,runtime_sort_ms + total_time_merge,merge_bw_gbs);
+	sprintf(buffer,"%i,%g, %g, %g",nels,runtime_sort_ms,runtime_sort_ms + total_time_merge,merge_bw_gbs);
 	execlp("./append_mio", "./append_mio","sorting.csv" ,argv[0],buffer, (char*)NULL);
         perror("append_dati_fallito");
-	
 }
