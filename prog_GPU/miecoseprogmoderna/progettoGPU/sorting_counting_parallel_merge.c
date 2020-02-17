@@ -191,17 +191,8 @@ int main(int argc,char** argv){
         cl_event init_evt, sort_evt, merge_evt1, merge_evt2, read_evt;
 
         init_evt = vecinit_random(vecinit_k, que, d_Sort1, nels );
-        	cl_int *h_Sort; 
+	cl_int *h_Sort; 
         sort_evt = sortparallel(sort_k, lws1, que, d_Sort1,  nels ,init_evt);
-	/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
-			CL_MAP_READ,
-			0, memsize,
-                	1, &sort_evt, &read_evt, &err);
-	ocl_check(err,"map buffer d_Sort1 init");
-
-	clWaitForEvents(1, &read_evt);
-	printarr(h_Sort,nels);*/
-
 	int turn=0,pass=1;	
 	double total_time_merge=0;
 	int current_merge_size = lws1;
@@ -217,16 +208,7 @@ int main(int argc,char** argv){
 			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort2: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
-			/*h_Sort = clEnqueueMapBuffer(que, d_Sort2, CL_FALSE,
-				CL_MAP_READ,
-				0, memsize,
-				1, &merge_evt2, &read_evt, &err);
-			ocl_check(err,"map buffer d_Sort1 init");
-
-			clWaitForEvents(1, &read_evt);
-			printarr(h_Sort,nels);
-			*/
-
+		
 		}
 		else{
 			turn = 0;
@@ -237,17 +219,7 @@ int main(int argc,char** argv){
 			const double merge_bw_gbs = memsize*log2(nels)/1.0e6/runtime_merge_ms;
 			printf("merge_parziale_lws%i destinazione Sort1: %d int in %gms: %g GB/s %g GE/s\n",
 					current_merge_size,nels, runtime_merge_ms, merge_bw_gbs, (nels)/1.0e6/runtime_merge_ms);
-			/*h_Sort = clEnqueueMapBuffer(que, d_Sort1, CL_FALSE,
-				CL_MAP_READ,
-				0, memsize,
-				1, &merge_evt1, &read_evt, &err);
-			ocl_check(err,"map buffer d_Sort1 init");
-
-			clWaitForEvents(1, &read_evt);
-			printarr(h_Sort,nels);
-			*/
-
-
+			
 		}
 		current_merge_size<<=1;
 		pass++;
