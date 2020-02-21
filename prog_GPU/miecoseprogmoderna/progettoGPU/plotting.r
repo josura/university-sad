@@ -31,15 +31,15 @@ ggplotsorting <- function(){
 ggplotsorting()
 
 ggplotsortingmore <- function(){
-  ggplot(data = datacounting,aes(x=nels,y=runtime,group=nome,shape=nome,colour=nome)) + geom_line() + geom_point() +ylab("runtime(ms)")
+  ggplot(data = datacounting,aes(x=nels,y=runtime_leaves,group=nome,shape=nome,colour=nome)) + geom_line() + geom_point() +ylab("runtime(ms)")
 }
 
 ggplotsortingmore()
 
 
-  ggplot(data = datacounting,aes(x=nome,y=bandwidth,group=nome,shape=nome,colour=nome)) + geom_boxplot() + theme(axis.text.x = element_blank()) 
+ggplot(data = datacounting,aes(x=nome,y=bandwidth,group=nome,shape=nome,colour=nome)) + geom_boxplot() + theme(axis.text.x = element_blank()) 
 
-                        data_plot_countingHalF <- datacounting[datacounting$nome == "sorting_counting_HALF.csv",2:3]
+data_plot_countingHalF <- datacounting[datacounting$nome == "sorting_counting_HALF.csv",2:3]
 data_plot_countingHalF
 plot(data_plot_countingHalF$nels,data_plot_countingHalF$runtime,"b",col="red")
 primiprogdati <- datacounting[datacounting$nome == programmi[1],]

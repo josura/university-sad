@@ -453,10 +453,15 @@ kernel void mergebinaryWithRepParallelV4(global int * out ,global int* arr,int n
 	const int pivot = arr[gi];
 	char condition = subsetid & 1;
 	//start = condition ? (subsetid - 1) * subsize: (subsetid + 1) * subsize;
+<<<<<<< Updated upstream
         start = (gi-(gi &(subsize-1)))^subsize; 	
+=======
+	start = (gi-(gi &(subsize-1)))^subsize; 
+>>>>>>> Stashed changes
 	end = (start + subsize) < nels ? start + subsize : nels;
 	int locindex=0;
-	if(start<nels) locindex = binaryIndexFullPower_corr(condition,pivot,arr + start , end - start);
+	//if(start<nels) 
+	locindex = binaryIndexFullPower_corr(condition,pivot,arr + start , end - start);
 	index=(gi-(condition ? subsize : 0))+locindex;
 	out[index] = pivot;
 	
