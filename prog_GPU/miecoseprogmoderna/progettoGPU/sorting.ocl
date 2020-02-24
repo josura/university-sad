@@ -453,11 +453,7 @@ kernel void mergebinaryWithRepParallelV4(global int * out ,global int* arr,int n
 	const int pivot = arr[gi];
 	char condition = subsetid & 1;
 	//start = condition ? (subsetid - 1) * subsize: (subsetid + 1) * subsize;
-<<<<<<< Updated upstream
-        start = (gi-(gi &(subsize-1)))^subsize; 	
-=======
 	start = (gi-(gi &(subsize-1)))^subsize; 
->>>>>>> Stashed changes
 	end = (start + subsize) < nels ? start + subsize : nels;
 	int locindex=0;
 	//if(start<nels) 
@@ -853,48 +849,55 @@ kernel void mergesortnaive(global int * restrict arr,int nels){
 
 }
 
-kernel void ParallelMerge_Local(global const int * in,int nels,global int * out,local int * lmem)
-{
-	const int li = get_local_id(0);
-	int wg = get_local_size(0);
-	const int gi = get_global_id(0);
-	// Move to the start of the subarray
-	int offset = get_group_id(0) * wg;
-	// see if we are at the end of the array
-	wg = (offset+wg)<nels ? wg : nels - offset; 
-	in += offset; out += offset;
-
-	//loading in local memory
-	if(li<wg)
-	lmem[li] = in[li];
-	barrier(CLK_LOCAL_MEM_FENCE); 
-
-	  // merging sub-sequences of length 1,2,...,WG/2
-	for (int length=1;length<wg;length<<=1)
-	{
-		int pivot = lmem[li];
-		int ii = li & (length-1);  // index in our sequence in 0..length-1
-		int sibling = (li - ii) ^ length; // beginning of the sibling to find the position
-		int pos = 0;
-		for (int inc=length;inc>0;inc>>=1) // binary search in the sub-sequence
-		{
-			int j = sibling+pos+inc-1;
-			int confront2 = (j<wg ?  lmem[j] : INT_MAX);
-			bool smaller = (confront2 < pivot) || ( confront2 == pivot && j < li );
-			pos += (smaller)?inc:0;
-			pos = min(pos,length);
-		}
-		int bits = (length<<1)-1; // mask for destination
-		int dest = ((ii + pos) & bits) | (li & ~bits); // destination index in merged sequence
-		barrier(CLK_LOCAL_MEM_FENCE);
-		lmem[dest] = pivot;
-		barrier(CLK_LOCAL_MEM_FENCE);
-	}
-
-  // Write output
-  	if(li<wg)
-	out[li] = lmem[li];
+inline int local_binaryIndexFullPower_corr(char condition,float pivot,local float* find1, int size){ 
+        int l=0 ,m, r=size-1; 
+        while (l<=r ){ 
+                m = l + ((r - l)>> 1); 
+                float confront1 = find1[m]; 
+                if ((confront1 < pivot)||(condition && confront1 == pivot) ) 
+                    l = m +1; 
+                else 
+                    r = m -1; 
+        } 
+        return  l; 
+} 
+ 
+//Ordinamento ParallelMerge di Giorgio Locicero 
+kernel void ParallelMerge_Local(global const float * in,int nels,global float * out,local float * lmem) 
+{ 
+        const int li = get_local_id(0); 
+        int wg = get_local_size(0); 
+        const int gi = get_global_id(0); 
+        // Move to the start of the subarray 
+        int offset = get_group_id(0) * wg; 
+        // see if we are at the end of the array 
+        wg = (offset+wg)<nels ? wg : nels - offset;  
+        in += offset; out += offset; 
+ 
+        //loading in local memory 
+        if(li<wg) 
+        lmem[li] = in[li]; 
+        barrier(CLK_LOCAL_MEM_FENCE);  
+          // merging sub-sequences of length 1,2,...,WG/2 
+        for (int length=1,shiftcond=0;length<wg;length<<=1,shiftcond++) 
+        {       
+                float pivot = lmem[li]; 
+                int ii = li & (length-1);  // index in our sequence in 0..length-1 
+                int sibling = (li - ii) ^ length; // beginning of the sibling to find the position 
+                int pos = 0; 
+                pos = local_binaryIndexFullPower_corr((sibling>>shiftcond)&1,pivot,lmem+sibling,length);
+                int bits = (length<<1)-1; // mask for destination 
+                int dest = ((ii + pos) & bits) | (li & ~bits); // destination index in merged sequence 
+                barrier(CLK_LOCAL_MEM_FENCE); 
+                lmem[dest] = pivot; 
+                barrier(CLK_LOCAL_MEM_FENCE); 
+        } 
+ 
+  // Write output 
+        if(li<wg) 
+        out[li] = lmem[li]; 
 }
+
 
 kernel void miosort(global int * restrict arr,int nels){
 	int gi=get_global_id(0);
