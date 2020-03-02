@@ -128,6 +128,10 @@ inline void Merge(global int* restrict arr,
 	    } 
 }
 
+inline void printvec(const int4 vect){
+	printf("s0 = %i s1 = %i s2 = %i s3 = %i \n",vect.s0,vect.s1,vect.s2,vect.s3);
+}
+
 void merge(global int* ar1,global int* ar2, int m, int n) 
 { 
     // Iterate through all elements of ar2[] starting from 
@@ -849,11 +853,11 @@ kernel void mergesortnaive(global int * restrict arr,int nels){
 
 }
 
-inline int local_binaryIndexFullPower_corr(char condition,float pivot,local float* find1, int size){ 
+inline int local_binaryIndexFullPower_corr(char condition,int pivot,local int* find1, int size){ 
         int l=0 ,m, r=size-1; 
         while (l<=r ){ 
                 m = l + ((r - l)>> 1); 
-                float confront1 = find1[m]; 
+                int confront1 = find1[m]; 
                 if ((confront1 < pivot)||(condition && confront1 == pivot) ) 
                     l = m +1; 
                 else 
@@ -862,8 +866,7 @@ inline int local_binaryIndexFullPower_corr(char condition,float pivot,local floa
         return  l; 
 } 
  
-//Ordinamento ParallelMerge di Giorgio Locicero 
-kernel void ParallelMerge_Local(global const float * in,int nels,global float * out,local float * lmem) 
+kernel void ParallelMerge_Local(global const int * in,int nels,global int * out,local int * lmem) 
 { 
         const int li = get_local_id(0); 
         int wg = get_local_size(0); 
@@ -881,7 +884,7 @@ kernel void ParallelMerge_Local(global const float * in,int nels,global float * 
           // merging sub-sequences of length 1,2,...,WG/2 
         for (int length=1,shiftcond=0;length<wg;length<<=1,shiftcond++) 
         {       
-                float pivot = lmem[li]; 
+                int pivot = lmem[li]; 
                 int ii = li & (length-1);  // index in our sequence in 0..length-1 
                 int sibling = (li - ii) ^ length; // beginning of the sibling to find the position 
                 int pos = 0; 
@@ -896,6 +899,46 @@ kernel void ParallelMerge_Local(global const float * in,int nels,global float * 
   // Write output 
         if(li<wg) 
         out[li] = lmem[li]; 
+}
+
+kernel void ParallelMerge_LocalVect(global int4 * restrict in,int nels,global int * out,local int4 * lmem) 
+{
+        const int li = get_local_id(0); 
+        int wg = get_local_size(0); 
+        const int gi = get_global_id(0); 
+	const int group_id=get_group_id(0);
+        // Move to the start of the subarray 
+        int offset = group_id * wg; 
+        // see if we are at the end of the array 
+        wg = ((offset)+wg)<nels ? wg : nels - (offset);  
+	in += offset>>2; out += offset; 
+ 
+        //loading in local memory 
+	//const int reading_quarts=(group_id == nels/wg ? (nels-(nels&(wg-1)))>>2 : wg>>2);
+	const int reading_quarts=(group_id == nels/wg ? (nels&(wg-1))>>2 : wg>>2);
+	if(li<reading_quarts){
+		lmem[li] = in[li];
+	}
+        barrier(CLK_LOCAL_MEM_FENCE);  
+	local int* lmem_scalar = (local int* )lmem;
+          // merging sub-sequences of length 1,2,...,WG/2 
+        for (int length=1,shiftcond=0;length<wg;length<<=1,shiftcond++) 
+        {       
+                int pivot = lmem_scalar[li]; 
+                int ii = li & (length-1);  // index in our sequence in 0..length-1 
+                int sibling = (li - ii) ^ length; // beginning of the sibling to find the position 
+                int pos = 0; 
+                pos = local_binaryIndexFullPower_corr((sibling>>shiftcond)&1,pivot,lmem_scalar+sibling,length);
+                int bits = (length<<1)-1; // mask for destination 
+                int dest = ((ii + pos) & bits) | (li & ~bits); // destination index in merged sequence 
+                barrier(CLK_LOCAL_MEM_FENCE); 
+                lmem_scalar[dest] = pivot; 
+                barrier(CLK_LOCAL_MEM_FENCE); 
+        } 
+ 
+  // Write output 
+        if(li<wg) 
+        out[li] = lmem_scalar[li]; 
 }
 
 
@@ -1165,9 +1208,7 @@ int4 __OVERLOADABLE__ isequal(int4 first,int4 second){
 	return (int4)((first.s0 == second.s0 ? 1 : 0), (first.s1 == second.s1 ? 1 : 0), (first.s2 == second.s2 ? 1 : 0), (first.s3 == second.s3 ? 1 : 0));
 }*/
 
-inline void printvec(const int4 vect){
-	printf("s0 = %i s1 = %i s2 = %i s3 = %i \n",vect.s0,vect.s1,vect.s2,vect.s3);
-}
+
 
 kernel void local_count_sort_vect(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
 	const int gi= get_global_id(0);
@@ -1314,7 +1355,7 @@ kernel void stable_local_count_sort_vectlmemV3(global int4 * restrict arr,int ne
 	const int li=get_local_id(0);
 	const int lws=get_local_size(0);
 	const int first_el = group_id*lws;
-	const int reading_quarts=(group_id == nels/lws ? (nels-(nels/lws)*lws)>>2 : lws>>2);
+	const int reading_quarts=(group_id != nels/lws ? lws>>2 : (nels-(nels/lws)*lws)>>2);
 	const int reading_place = (group_id * (lws>>2)) + li;
 	global int* restrict arr_scalar = (global int* )arr;
 	if(gi<nels){
@@ -1322,6 +1363,41 @@ kernel void stable_local_count_sort_vectlmemV3(global int4 * restrict arr,int ne
 		if(li<reading_quarts){
 			lmem[li] = arr[reading_place];
 		}
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	int counter=0;
+	int4 counter4 = (int4)(0);
+	if(gi<nels){
+		for(int i=0;i<(reading_quarts); i++){
+			const int4 compar = lmem[i];
+			const int4 positions = (int4)(0,1,2,3)+(i<<2)<li;
+			counter4 -= (compar < pivot)|( positions && (compar == pivot));
+
+		}
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if(gi<nels){
+		counter=counter4.s0+counter4.s1+counter4.s2+counter4.s3;
+		res[first_el + counter]=pivot;
+	}
+}
+
+kernel void stable_sliding_count_sort_vectlmem(global int4 * restrict arr,int nels, global int* restrict res,local int4 * lmem){
+	const int gi= get_global_id(0);
+	const int group_id = get_group_id(0);
+	int pivot;
+	const int li=get_local_id(0);
+	const int lws=get_local_size(0);
+	const int first_el = group_id*lws;
+	const int reading_quarts=(group_id == nels/lws ? (nels-(nels/lws)*lws)>>2 : lws>>2);
+	const int reading_place = (group_id * (lws>>2)) + li;
+	global int* restrict arr_scalar = (global int* )arr;
+	if(gi<nels){
+		pivot = arr_scalar[gi];
+		
+	}
+	if(li<reading_quarts){
+		lmem[li] = arr[reading_place];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	int counter=0;
