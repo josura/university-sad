@@ -1,7 +1,9 @@
+#include "parallel_sorting.h"
 #include <stdlib.h>
 #include <stdio.h>
 #define CL_TARGET_OPENCL_VERSION 120
 #include "ocl_boiler.h"
+#include <CL/cl.h>
 
 cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
         cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size) {
@@ -193,12 +195,10 @@ double sort_count_parallelmerge(cl_int _lws1,cl_int _lws2, cl_command_queue que,
                 }
                 current_merge_size<<=1;
         }
+        cl_int *h_Sort;
         if(turn){
                 clReleaseMemObject(d_Sort1);
-		d_vout =d_Sort2;
-        }else{
-                clReleaseMemObject(d_Sort2);
-		d_vout =d_Sort1;
+		d_Sort1 =d_Sort2;
         }
 
         clReleaseKernel(sort_merge_k);
@@ -241,12 +241,10 @@ double sort_count_HALFparallelmerge(cl_int _lws1,cl_int _lws2, cl_command_queue 
                 }
                 current_merge_size<<=1;
         }
+        cl_int *h_Sort;
         if(turn){
                 clReleaseMemObject(d_Sort1);
-		d_vout =d_Sort2;
-        }else{
-                clReleaseMemObject(d_Sort2);
-		d_vout =d_Sort1;
+		d_Sort1 =d_Sort2;
         }
 
         clReleaseKernel(sort_merge_k);
@@ -289,12 +287,10 @@ double sort_merge_parallelmerge(cl_int _lws1,cl_int _lws2, cl_command_queue que,
                 }
                 current_merge_size<<=1;
         }
+        cl_int *h_Sort;
         if(turn){
                 clReleaseMemObject(d_Sort1);
-		d_vout =d_Sort2;
-        }else{
-                clReleaseMemObject(d_Sort2);
-		d_vout =d_Sort1;
+		d_Sort1 =d_Sort2;
         }
 
         clReleaseKernel(sort_merge_k);
@@ -337,12 +333,10 @@ double sort_merge_HALFparallelmerge(cl_int _lws1,cl_int _lws2, cl_command_queue 
                 }
                 current_merge_size<<=1;
         }
+        cl_int *h_Sort;
         if(turn){
                 clReleaseMemObject(d_Sort1);
-		d_vout =d_Sort2;
-        }else{
-                clReleaseMemObject(d_Sort2);
-		d_vout =d_Sort1;
+		d_Sort1 =d_Sort2;
         }
 
         clReleaseKernel(sort_merge_k);
@@ -385,12 +379,10 @@ double sort_mergevect_parallelmerge(cl_int _lws1,cl_int _lws2, cl_command_queue 
                 }
                 current_merge_size<<=1;
         }
+        cl_int *h_Sort;
         if(turn){
                 clReleaseMemObject(d_Sort1);
-		d_vout =d_Sort2;
-        }else{
-                clReleaseMemObject(d_Sort2);
-		d_vout =d_Sort1;
+		d_Sort1 =d_Sort2;
         }
 
         clReleaseKernel(sort_merge_k);
@@ -433,12 +425,10 @@ double sort_mergevect_HALFparallelmerge(cl_int _lws1,cl_int _lws2, cl_command_qu
                 }
                 current_merge_size<<=1;
         }
+        cl_int *h_Sort;
         if(turn){
                 clReleaseMemObject(d_Sort1);
-		d_vout =d_Sort2;
-        }else{
-                clReleaseMemObject(d_Sort2);
-		d_vout =d_Sort1;
+		d_Sort1 =d_Sort2;
         }
 
         clReleaseKernel(sort_merge_k);
@@ -483,12 +473,10 @@ double sort_assemblylane_parallelmerge(cl_int _lws1,cl_int _lws2, cl_command_que
                 }
                 current_merge_size<<=1;
         }
+        cl_int *h_Sort;
         if(turn){
                 clReleaseMemObject(d_Sort1);
-		d_vout =d_Sort2;
-        }else{
-                clReleaseMemObject(d_Sort2);
-		d_vout =d_Sort1;
+		d_Sort1 =d_Sort2;
         }
 
         clReleaseKernel(sort_merge_k);
@@ -532,12 +520,10 @@ double sort_assemblylane_HALFparallelmerge(cl_int _lws1,cl_int _lws2, cl_command
                 }
                 current_merge_size<<=1;
         }
+        cl_int *h_Sort;
         if(turn){
                 clReleaseMemObject(d_Sort1);
-		d_vout =d_Sort2;
-        }else{
-                clReleaseMemObject(d_Sort2);
-		d_vout =d_Sort1;
+		d_Sort1 =d_Sort2;
         }
 
         clReleaseKernel(sort_merge_k);

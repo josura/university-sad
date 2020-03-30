@@ -97,8 +97,7 @@ cl_event sortparallel(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
 	return sortinit_evt;
 }
 
-cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que,
-	cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size)
+cl_event sortparallelmerge(cl_kernel sortinit_k,cl_int _lws, cl_command_queue que, cl_mem d_v1,cl_mem d_vout, cl_int nels, cl_event init_event,cl_int current_merge_size)
 {
 	const size_t workitem=nels; 
 	const size_t gws[] = { round_mul_up(workitem, _lws ) };
