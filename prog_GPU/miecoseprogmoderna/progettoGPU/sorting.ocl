@@ -580,6 +580,74 @@ kernel void mergebinaryWithRepParallelV4local(global int * out ,global int* arr,
 	
 }
 
+inline int local_construction_minipartitions_corr(char condition,int pivot,global int4* find1, int size,local int4* lmemvec, int localsize){
+        int l=0 ,m, r=(size/localsize)-1;
+	int first_place=0,last_place=size-1;
+        while (l<=r ){
+                m = l + ((r - l)>> 1);
+		first_place = m * localsize;
+		last_place =first_place + localsize -1;
+		if(last_place >= size)last_place = size -1;
+		const unsigned li = get_local_id(0), last= (last_place - first_place)>>2,lws=get_local_size(0);	
+		for(unsigned stride=0;stride <localsize && stride<=last;stride+=lws){
+			int locplace=li+stride;
+			if(locplace<last)lmemvec[locplace] = find1[first_place+li+stride];
+		}
+		local int* lmem = (local int*)lmemvec;
+		barrier(CLK_LOCAL_MEM_FENCE);
+                int confront1 = lmem[0];
+		int confront2 = lmem[localsize-1];
+                if ((pivot>confront1 && pivot>confront2 ) || (condition && confront1<=pivot && confront2<=pivot))
+                    l = m +1;
+                else
+                    r = m -1;
+        }
+
+	
+        return  first_place;
+}
+
+inline int binaryIndex_lmem_corr(char condition,int pivot,local int* find1, int size){
+        int l=0 ,m, r=size-1;
+        while (l<=r ){
+                m = l + ((r - l)>> 1);
+                int confront1 = find1[m];
+                if ((confront1 < pivot)||(condition && confront1 == pivot) )
+                    l = m +1;
+                else
+                    r = m -1;
+        }
+        return  l;
+}
+
+//the local_subsize needs to be divisible by the number of workitems in a workgroup, if vectorized, the division needs to be divisible by 4
+kernel void mergebinaryWithRepParallelLocalFinal(global int * out ,global int* arr,int nels, int subsize, local int* lmem,int local_subsize ){
+        const int gi = get_global_id(0);
+	if(gi>=nels)return;
+	const int lws = get_local_size(0);
+	const int subsetid = gi/subsize;
+	const int li = get_local_id(0);
+	const int wi_subsize = (local_subsize>>2)/lws;
+	const int wi_subsize_start = li * wi_subsize;
+	int start,end,index;
+	char condition= subsetid &1;
+	const int pivot = arr[gi];
+	start = (gi-(gi &(subsize-1)))^subsize; 
+	end = (start + subsize) < nels ? start + subsize : nels;
+	//int size = ((start + subsize) < nels ? subsize : nels - start);
+	int locindex=0;
+	local int4* lmem_vec = (local int4*)lmem;
+	int first_place = 0;
+	if(start<nels) first_place = local_construction_minipartitions_corr(condition , pivot ,(global int4*) arr , nels , lmem_vec , local_subsize);
+	locindex = binaryIndex_lmem_corr(condition, pivot,lmem,local_subsize);
+	if(locindex>=local_subsize){
+		locindex += binaryIndexFullPower_corr(condition, pivot, arr + first_place + locindex, nels - (first_place +locindex) );
+	}
+	index=(gi-(condition ? subsize : 0))+locindex;
+	out[index] = pivot;
+	
+}
+
 kernel void mergebinaryWithRepHalfParallel(global int * out ,global int* arr,int nels, int subsize ){
         const int gi = get_global_id(0);
 	if(gi>=round_mul_up((nels)>>1,subsize))return;
