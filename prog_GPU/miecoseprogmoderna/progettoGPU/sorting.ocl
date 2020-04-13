@@ -579,10 +579,14 @@ kernel void mergebinaryWithRepParallelV4local(global int * out ,global int* arr,
 	//risolto cambiando leggermente l'algoritmo di ricerca degli indici
 	
 }
-
-inline int local_construction_minipartitions_corr(char condition,int pivot,global int4* find1, int size,local int4* lmemvec, int localsize){
-        int l=0 ,m, r=(size/localsize)-1;
+/*
+inline int local_construction_minipartitions_corr(char condition,int pivot,global int4* findvec, int size,local int4* lmemvec, int localsize, local int l, local int m, local int r){
 	int first_place=0,last_place=size-1;
+	local int* lmem = (local int*)lmemvec;
+	global int* find = (global int*)findvec;
+        local int l ,m, r;
+	l=0;
+	r=subsize/local_subsize -1;
         while (l<=r ){
                 m = l + ((r - l)>> 1);
 		first_place = m * localsize;
@@ -591,22 +595,24 @@ inline int local_construction_minipartitions_corr(char condition,int pivot,globa
 		const unsigned li = get_local_id(0), last= (last_place - first_place)>>2,lws=get_local_size(0);	
 		for(unsigned stride=0;stride <localsize && stride<=last;stride+=lws){
 			int locplace=li+stride;
-			if(locplace<last)lmemvec[locplace] = find1[first_place+li+stride];
+			if(locplace<last && ( ( (first_place>>2) + li + stride) < (size>>2) ))lmemvec[locplace] = findvec[(first_place>>2)+li+stride];
 		}
-		local int* lmem = (local int*)lmemvec;
+                int confront1 = find[first_place];
+		int confront2 = find[last_place];
+		if(li==0){
+			if ((pivot>confront1 && pivot>confront2 ) || (condition && confront1<=pivot && confront2<=pivot))
+			    l = m +1;
+			else
+			    r = m -1;
+		}
 		barrier(CLK_LOCAL_MEM_FENCE);
-                int confront1 = lmem[0];
-		int confront2 = lmem[localsize-1];
-                if ((pivot>confront1 && pivot>confront2 ) || (condition && confront1<=pivot && confront2<=pivot))
-                    l = m +1;
-                else
-                    r = m -1;
         }
 
+	barrier(CLK_LOCAL_MEM_FENCE);
 	
         return  first_place;
 }
-
+*/
 inline int binaryIndex_lmem_corr(char condition,int pivot,local int* find1, int size){
         int l=0 ,m, r=size-1;
         while (l<=r ){
@@ -623,8 +629,9 @@ inline int binaryIndex_lmem_corr(char condition,int pivot,local int* find1, int 
 //the local_subsize needs to be divisible by the number of workitems in a workgroup, if vectorized, the division needs to be divisible by 4
 kernel void mergebinaryWithRepParallelLocalFinal(global int * out ,global int* arr,int nels, int subsize, local int* lmem,int local_subsize ){
         const int gi = get_global_id(0);
-	if(gi>=nels)return;
+	//if(gi>=nels)return;
 	const int lws = get_local_size(0);
+	//if(gi==0)printarr(arr,nels);
 	const int subsetid = gi/subsize;
 	const int li = get_local_id(0);
 	const int wi_subsize = (local_subsize>>2)/lws;
@@ -636,15 +643,103 @@ kernel void mergebinaryWithRepParallelLocalFinal(global int * out ,global int* a
 	end = (start + subsize) < nels ? start + subsize : nels;
 	//int size = ((start + subsize) < nels ? subsize : nels - start);
 	int locindex=0;
-	local int4* lmem_vec = (local int4*)lmem;
-	int first_place = 0;
-	if(start<nels) first_place = local_construction_minipartitions_corr(condition , pivot ,(global int4*) arr , nels , lmem_vec , local_subsize);
+	int size = end -start;
+	arr+=start;
+	//if(gi<8)printf("ciao sono %i wi_subsize %i wi_subsize_start %i start %i valore %i minori %i pos finale %i\n",gi,wi_subsize,wi_subsize_start,start,pivot,locindex,index);
+	//first_place = local_construction_minipartitions_corr(condition , pivot ,(global int4*) arr , subsize ,(local int4*) lmem , local_subsize);
+	int first_place=0,last_place=subsize-1;
+	local int4* lmemvec = (local int4*)lmem;
+	global int4* findvec = (global int4*)arr;
+        local int l , r;
+	int m=0;
+	l=0;
+	r=size/local_subsize -1;
+        while (l<=r ){
+                m = l + ((r - l)>> 1);
+		first_place = m * local_subsize;
+		last_place =first_place + local_subsize -1;
+		if(last_place >= size)last_place = size -1;
+                int confront1 = arr[first_place];
+		int confront2 = arr[last_place];
+		if(li==0){
+			if ((pivot>confront1 && pivot>confront2 ) || (condition && confront1<=pivot && confront2<=pivot))
+			    l = m +1;
+			else
+			    r = m -1;
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+        }
+	const unsigned last= (last_place - first_place)>>2;	
+	for(unsigned stride=0;stride <local_subsize && stride<last;stride+=lws>>2){
+		int locplace=li+stride;
+		printf("locplace %i li %i firstplace %i",locplace, li,first_place);
+		if(locplace>>2<local_subsize>>2 && ( ( (first_place>>2) + locplace) < (size>>2) ))lmemvec[locplace] = findvec[(first_place>>2)+locplace];
+	}
+
 	locindex = binaryIndex_lmem_corr(condition, pivot,lmem,local_subsize);
 	if(locindex>=local_subsize){
-		locindex += binaryIndexFullPower_corr(condition, pivot, arr + first_place + locindex, nels - (first_place +locindex) );
+		locindex += binaryIndexFullPower_corr(condition, pivot, arr + first_place + locindex, size - (first_place +locindex) );
 	}
 	index=(gi-(condition ? subsize : 0))+locindex;
-	out[index] = pivot;
+	if(gi<nels)out[index] = pivot;
+	
+}
+
+inline int binaryIndexFullPowerSubsize_corr(char condition,int pivot,global int* find1, int size,int subsize){
+        int l=0 ,m, r=size-1;
+	int interval = r - l;
+        while (l<=r && interval > subsize){
+                m = l + (interval>> 1);
+                int confront1 = find1[m];
+                if ((confront1 < pivot)||(condition && confront1 == pivot) )
+                    l = m +1;
+                else
+                    r = m -1;
+		interval = r - l;
+        }
+        return  l;
+}
+
+kernel void mergebinaryWithRepParallelLocalFinal2(global int * out ,global int* arr,int nels, int subsize,local int* lmem, int local_subsize ){
+        const int gi = get_global_id(0);
+	const int li = get_local_id(0),lws = get_local_size(0);
+	const int subsetid = gi/subsize;
+	//if(gi==0)printarr(arr,nels);
+	int start,end,index;
+	const int pivot = arr[gi];
+	char condition = subsetid & 1;
+	//start = condition ? (subsetid - 1) * subsize: (subsetid + 1) * subsize;
+	start = (gi-(gi &(subsize-1)))^subsize; 
+	end = (start + subsize) < nels ? start + subsize : nels;
+	int locindex=0;
+	local int first;
+	if(li==0){
+		first= binaryIndexFullPowerSubsize_corr(condition,pivot, arr+start, start - end ,local_subsize);
+
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	//loading elements from global memory to local memory
+	int last = first + local_subsize;
+	if(last>=nels)last = nels;
+	int size = last - first;
+	for(unsigned stride=0;stride <local_subsize && stride<=size;stride+=lws){
+		int locplace=li+stride;
+		if(locplace<size)lmem[locplace] = arr[start+first+li+stride];
+	}
+	/*for(unsigned stride=0;stride <local_subsize>>2 && stride<=size>>2;stride+=lws){
+		int locplace=li+stride;
+		printf("gi %i locplace %i li %i start %i first %i\n",gi,locplace, li,start, first);
+		if(locplace<size>>2 && ((start + first)>>2)+locplace < nels>>2 )((local int4*)lmem)[locplace] = ((global int4*)arr)[(start+first)>>2+li+stride];
+	}*/
+	barrier(CLK_LOCAL_MEM_FENCE);
+	/*if(gi==0){
+		printf("locale gi %i -->",gi);
+		printarrlocal(lmem,local_subsize);
+	}*/
+	if(start<nels) locindex = binaryIndex_local_blocks_corr(condition,pivot,arr + start + first , size,lmem,local_subsize);
+	index=(gi-(condition ? subsize : 0))+locindex;
+	//if(gi<8)printf("ciao sono %i start %i end %i first %i valore %i size %i locindex %i pos finale %i\n",gi,start,end,first,pivot,size,locindex,index);
+	if(gi<nels)out[index] = pivot;
 	
 }
 
