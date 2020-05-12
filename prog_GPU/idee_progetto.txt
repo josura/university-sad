@@ -1,0 +1,3 @@
+in teoria per il sorting posso fare un ibrido, lanciare il sorting su sottogruppi e poi un mergesort in host, la parte iniziale di ordinamento di sottogruppi posso farla usando workgroup differenti, in modo da usare abbastanza la gpu
+
+un'altro modo è usare lo stesso kernel che usavo per sottoelementi.
