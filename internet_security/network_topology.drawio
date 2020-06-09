@@ -1,0 +1,66 @@
+<mxfile host="app.diagrams.net" modified="2020-06-08T21:05:51.266Z" agent="5.0 (X11)" etag="GeTxpmmVl_GtYZk74wD4" version="13.1.14" type="github">
+  <diagram id="ZckmdaoXzeLD56jOtGl1" name="Page-1">
+    <mxGraphModel dx="981" dy="528" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="0NU24TA6zj3jAs6wYLDZ-1" target="0NU24TA6zj3jAs6wYLDZ-9">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-1" value="" style="points=[[0.015,0.015,0],[0.985,0.015,0],[0.985,0.985,0],[0.015,0.985,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];verticalLabelPosition=bottom;html=1;verticalAlign=top;aspect=fixed;align=center;pointerEvents=1;shape=mxgraph.cisco19.rect;prIcon=ips_ids;fillColor=#FAFAFA;strokeColor=#005073;" vertex="1" parent="1">
+          <mxGeometry x="384" y="180" width="64" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-2" value="" style="points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;image;image=img/lib/allied_telesis/computer_and_terminals/Personal_Computer_with_Server.svg;" vertex="1" parent="1">
+          <mxGeometry x="180" y="173.8" width="62.400000000000006" height="62.400000000000006" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-3" value="" style="points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;image;image=img/lib/allied_telesis/computer_and_terminals/Personal_Computer.svg;" vertex="1" parent="1">
+          <mxGeometry x="230" y="280" width="45.6" height="61.800000000000004" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-4" value="" style="points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;image;image=img/lib/allied_telesis/computer_and_terminals/Personal_Computer_Wireless.svg;" vertex="1" parent="1">
+          <mxGeometry x="221.3" y="60" width="63" height="64.2" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="0NU24TA6zj3jAs6wYLDZ-9" target="0NU24TA6zj3jAs6wYLDZ-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="0NU24TA6zj3jAs6wYLDZ-9" target="0NU24TA6zj3jAs6wYLDZ-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="0NU24TA6zj3jAs6wYLDZ-9" target="0NU24TA6zj3jAs6wYLDZ-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-9" value="" style="image;html=1;labelBackgroundColor=#ffffff;image=img/lib/clip_art/networking/Router_Icon_128x128.png" vertex="1" parent="1">
+          <mxGeometry x="284.3" y="170" width="45.7" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-14" value="192.168.0.0/24" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;" vertex="1" parent="1">
+          <mxGeometry x="252.15" y="170" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-27" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="0NU24TA6zj3jAs6wYLDZ-15" target="0NU24TA6zj3jAs6wYLDZ-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-15" value="" style="outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;shape=mxgraph.aws3.internet_2;fillColor=#D2D3D3;gradientColor=none;" vertex="1" parent="1">
+          <mxGeometry x="580" y="167" width="79.5" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-17" value="&lt;div&gt;Suricata IDPS&lt;/div&gt;&lt;div&gt;sensor&lt;br&gt;&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;" vertex="1" parent="1">
+          <mxGeometry x="368" y="151" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-25" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="0NU24TA6zj3jAs6wYLDZ-18" target="0NU24TA6zj3jAs6wYLDZ-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-18" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn2.iconfinder.com/data/icons/security-and-protect-glyph-color/512/security-protect-lock-shield-14-128.png" vertex="1" parent="1">
+          <mxGeometry x="480" y="271.8" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-24" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="0NU24TA6zj3jAs6wYLDZ-21" target="0NU24TA6zj3jAs6wYLDZ-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-21" value="" style="image;html=1;labelBackgroundColor=#ffffff;image=img/lib/clip_art/networking/Router_Icon_128x128.png" vertex="1" parent="1">
+          <mxGeometry x="492.15" y="170.2" width="45.7" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="0NU24TA6zj3jAs6wYLDZ-22" value="123.123.1.0/24" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="170.2" width="110" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
