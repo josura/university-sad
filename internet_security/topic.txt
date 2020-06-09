@@ -1,0 +1,39 @@
+Ogni progetto deve avere una demo
+Scenari di attacchi o difesa ai protocolli visti
+Suricata
+Iniziare con scenario ed introduzione
+Introduzione a Suricata
+introduzione allo scenario di attacco
+
+Il seminario è interessante per il mio progetto:
+FIREWALL
+packet filtering come controllo degli IP, non teneva conto del tempo quindi replay attack
+sateful teneva conto del tempo
+application level dipendente dall'applicazione
+
+iptables
+regole raggruppate in tabelle
+raw
+filter(filtering degli ip)
+nat(per implementare nat con firewall)
+mangle(manipolare il pacchetto in ogni suo aspetto)
+
+regole definite in catene nelle tabelle
+azioni conclusive(accept,drop, reject), oppure un salto ad un'altra catena
+iptables modulare ed estensibile , alcuni citati sono state multiport comment
+
+
+
+
+IDS
+classificazione host o network based
+classificazione temporale con alerting realtime, oppure a log
+altre classificazioni
+
+
+snort basato su firme, in /etc/snort/rules
+
+
+
+suricata è meglio di snort per lui, suricata è multithread, solo che snort ha dietro una azienda e quindi è più sicura
+come mantenimento meglio snort, come implementazione suricata
