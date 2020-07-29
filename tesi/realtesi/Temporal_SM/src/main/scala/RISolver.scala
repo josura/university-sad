@@ -28,12 +28,12 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
 	Compute the number of matches of query graph into target graph
 	*/
 
-  def solve(queryGraph: TemporalGraph): Unit = {
+  def solve(queryGraph: TemporalGraph,delta:Int): Unit = {
     numMatches = 0
-//Compute compatibility domains
-    val domains: Array[BitSet] = computeDomains(queryGraph)
 //Build the state space representation machine
-    this.mama = new MatchingMachine(queryGraph)
+     this.mama = new MatchingMachine(queryGraph)
+//Compute compatibility domains
+    val domains: Array[BitSet] = computeDomains(queryGraph,delta)
 //Compute the set of query symmetry breaking conditions
     val symmCond: Array[Vector[Integer]] = queryGraph.getSymmetryConditions
     val targetOutAdjLists: Array[TIntHashSet] = targetGraph.getOutAdjList
@@ -77,17 +77,24 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
       ci = -1
 //Process match between currently processed query node and next candidate node
       candidatesIT(si) += 1
-      while (candidatesIT(si) < candidates(si).length) {
+      var notmatched= true
+      while (candidatesIT(si) < candidates(si).length && notmatched) {
         ci = candidates(si)(candidatesIT(si))
 //Add mapping
         solution(si) = ci
 //Check if target node-query node mapping is feasible
-        if (!matched(ci) && 
+        if(!matched(ci) && 
             domains(mama.map_state_to_node(si)).get(ci) &&
             condCheck(si, solution, symmCond) &&
-            edgesCheck(si, ci, solution, matched)) //break else ci = -1
+            edgesCheck(si, ci, solution, matched,queryGraph,delta)
+            //comment below if feasibility rules are not calculated
+            //&& queryGraph.testNodesMapping(targetGraph,mama map_state_to_node si,,solution,delta)
+            ){
+              notmatched=false
+              println("match found for query node " + mama.map_state_to_node(si) + " to target node but i dont know" + ci)
+            } else ci = -1
 //Mapping is not feasible, go on with next candidate
-            candidatesIT(si) += 1
+        if (notmatched)candidatesIT(si) += 1
       }
 //Do backtracking and go back to the previously processed query node
       if (ci == -1) {
@@ -107,10 +114,10 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
 //Go to the next query node to process for matching
           sip1 = si + 1
           if (parent_type(sip1) != MamaParentType.PARENTTYPE_NULL) {
-            candidates(sip1) =
-              if (parent_type(sip1) == MamaParentType.PARENTTYPE_IN)
+              candidates(sip1) ={if (parent_type(sip1) == MamaParentType.PARENTTYPE_IN)
                 targetInAdjLists(solution(parent_state(sip1))).toArray()
               else targetOutAdjLists(solution(parent_state(sip1))).toArray()
+            }
           }
 //Start from the first target candidate node for that query node
           candidatesIT(si + 1) = -1
@@ -135,7 +142,7 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
 	Bit 1 in position i means that target node i is in the compatibility domain of that query node
 	 */
 
-  private def computeDomains(queryGraph: TemporalGraph,delta:Int = 100): Array[BitSet] = {
+  def computeDomains(queryGraph: TemporalGraph,delta:Int = 100): Array[BitSet] = {
     val numQueryNodes: Int = queryGraph.getNumNodes
     val numTargetNodes: Int = targetGraph.getNumNodes
     val domains: Array[BitSet] = Array.ofDim[BitSet](numQueryNodes)
@@ -149,7 +156,7 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
     for (i <- 0 until numTargetNodes) {
 //Find compatible query nodes and update domains
       for (j <- 0 until domains.length) {
-        if (queryGraph.testCompatibility(targetGraph,j,i,delta)&& 
+        if (//queryGraph.testCompatibility(targetGraph,j,i,delta) && 
             queryOutAdjLists(j).size <= targetOutAdjLists(i).size &&
             queryInAdjLists(j).size <= targetInAdjLists(i).size) {
           domains(j).set(i)
@@ -193,7 +200,6 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
 	@param solution: set of already matched couples of query-target nodes
 	@param matched: array of boolean where the i-th entry is true iff the target node i has been already matched
 	*/
-
   def condCheck(si: Int,
                 solution: Array[Int],
                 symmCond: Array[Vector[Integer]]): Boolean = {
@@ -216,32 +222,23 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
 	 * @param solution: set of already matched couples of query-target nodes
 	 * @param matched: array of boolean where the i-th entry is true iff the target node i has been already matched 
    */
-	
-
   def edgesCheck(si: Int,
                  ci: Int,
                  solution: Array[Int],
-                 matched: Array[Boolean]): Boolean = {
+                 matched: Array[Boolean],
+                 query:TemporalGraph,
+                 delta:Int): Boolean = {
     val targetOutAdjLists: Array[TIntHashSet] = targetGraph.getOutAdjList
     val targetInAdjLists: Array[TIntHashSet] = targetGraph.getInAdjList
     for (me <- 0 until mama.edges_sizes(si)) {
+      val querySource = mama.edges(si)(me).trueSource
+      val queryDest = mama.edges(si)(me).truetarget
+      val queryTime = mama.edges(si)(me).time
       val source: Int = solution(mama.edges(si)(me).source)
       val target: Int = solution(mama.edges(si)(me).target)
       if (!targetOutAdjLists(source).contains(target)) return false
-    }
-    if (induced) {
-      var count: Int = 0
-      var it: TIntIterator = targetOutAdjLists(ci).iterator()
-      while (it.hasNext) if (matched(it.next())) {
-        count += 1
-        if (count > mama.o_edges_sizes(si)) return false
-      }
-      count = 0
-      it = targetInAdjLists(ci).iterator()
-      while (it.hasNext) if (matched(it.next())) {
-        count += 1
-        if (count > mama.i_edges_sizes(si)) return false
-      }
+      val time = targetGraph.outAdjListTimes(source).get(target).time
+      if(!query.controlTemporals(_<=_,query.nodeTemporalStructure(queryDest,queryTime,delta),targetGraph.nodeTemporalStructure(target,time,delta))) return false
     }
     true
   }

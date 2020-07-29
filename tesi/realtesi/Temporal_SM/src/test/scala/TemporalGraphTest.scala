@@ -7,10 +7,28 @@ class TemporalGraphTest extends AnyFunSuite {
     val target = new TemporalGraph(true, 7)
     target.addEdge(0,2,1).addEdge(2,1,2).addEdge(2,3,2).addEdge(2,4,2).addEdge(3,5,3).addEdge(3,6,3).addEdge(5,6,6).addEdge(6,4,4).addEdge(5,0,4).addEdge(3,4,8)
 
+    val RIProva = new RISolver(target,false)
+
     val query2 = new TemporalGraph(true, 4)
     query2.addEdge(1,0,2).addEdge(0,2,8).addEdge(2,1,3).addEdge(1,3,1).addEdge(3,0,4)
     val target2 = new TemporalGraph(true, 7)
     target2.addEdge(0,1,1).addEdge(0,3,2).addEdge(1,4,3).addEdge(1,3,5).addEdge(2,0,4).addEdge(3,2,10).addEdge(4,5,4).addEdge(5,6,6).addEdge(5,3,2).addEdge(6,3,4)
+
+
+    test("test contains node 0"){
+        var param=new query.Contact(1,1)
+        assert(query.outAdjListTimes(0).containsKey(param.hashCode()))
+        param=new query.Contact(0,1)
+        assert(query.inAdjListTimes(1).containsKey(param.hashCode()))
+        param=new query.Contact(2,1)
+        assert(query.outAdjListTimes(0).containsKey(param.hashCode()))
+        
+    }
+
+    test("RISolver 1"){
+        RIProva.solve(query,5)
+        assert(RIProva.getNumMatches()==1)
+    }
 
     test("test mapping condition 1"){
         val mappings =new Array[Int](4) map(value => -1)

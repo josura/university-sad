@@ -65,7 +65,7 @@ object RI {
       println("Matching query " + (i + 1) + "...")
       val inizio: Long = System.currentTimeMillis()
       val q: TemporalGraph = setQueries.get(i)
-      ri.solve(q)
+      ri.solve(q,5)
       val numOccs: Long = ri.getNumMatches
       setCounts.add(numOccs)
       val fine: Double = System.currentTimeMillis()

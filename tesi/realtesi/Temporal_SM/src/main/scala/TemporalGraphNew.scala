@@ -2,9 +2,9 @@ import gnu.trove.iterator.TIntIterator
 
 import gnu.trove.set.hash.TIntHashSet
 
-import gnu.trove.map.hash.TIntObjectHashMap
+import gnu.trove.set.hash.THashSet
 
-import gnu.trove.iterator.TIntObjectIterator
+import gnu.trove.iterator.hash.TObjectHashIterator
 
 import java.util.Arrays
 
@@ -13,7 +13,14 @@ import java.util.Vector
 import scala.util.control._
 import scala.annotation.switch
 
-class TemporalGraph(val directed:Boolean,numNodes:Int) {
+class TemporalGraphNew(val directed:Boolean,numNodes:Int) {
+
+  /*Adjacency lists for graph nodes. The i-th entry of the array is the adjacency list for node with ID i.
+
+	The array is a set of integers, representing the IDs of adjacent nodes of node i*/
+
+  
+
   /*
 	Add an edge to the graph
 	@param source: the first node of the edge
@@ -22,22 +29,6 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
   class Contact(val node:Int, val time:Int){
       override def toString() : String = {
           " --" + time + "--> "+ node
-      }
-      def equals(x: Contact): Boolean = {
-        node == x.node && time == x.time
-      }
-      override def hashCode(): Int = {
-        //(node<<16) ^ time   // not for now because the consideration is only for single contacts for edge
-        node
-      }
-      def GetHashCode(): Int = {
-        hashCode()
-      }
-      def Equals(x:Contact):Boolean ={
-        this.equals(x)
-      }
-      def ==(x:Contact):Boolean = {
-        this.equals(x)
       }
   }
   var outAdjList: Array[TIntHashSet] = new Array[TIntHashSet](numNodes)
@@ -48,28 +39,26 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
 
   def getInAdjList():Array[TIntHashSet]  = inAdjList
   //redundant source and destination, part above should be deleted
-  var inAdjListTimes: Array[TIntObjectHashMap[Contact]] = new Array[TIntObjectHashMap[Contact]](numNodes)
+  var inAdjListTimes: Array[THashSet[Contact]] = new Array[THashSet[Contact]](numNodes)
 
-  var outAdjListTimes: Array[TIntObjectHashMap[Contact]] = new Array[TIntObjectHashMap[Contact]](numNodes) 
+  var outAdjListTimes: Array[THashSet[Contact]] = new Array[THashSet[Contact]](numNodes) 
   for(i <- 0.until(numNodes)){
         outAdjList(i) = new TIntHashSet();
         inAdjList(i) = new TIntHashSet();
-        inAdjListTimes(i) = new TIntObjectHashMap[Contact]()
-        outAdjListTimes(i) = new TIntObjectHashMap[Contact]()
+        inAdjListTimes(i) = new THashSet[Contact]()
+        outAdjListTimes(i) = new THashSet[Contact]()
     }
     
-  def addEdge(source: Int, dest: Int, time:Int): TemporalGraph = {
+  def addEdge(source: Int, dest: Int, time:Int): TemporalGraphNew = {
     outAdjList(source).add(dest)
     inAdjList(dest).add(source)
-    val newCont = new Contact(dest,time)
-    val newContIn = new Contact(source,time)
-    outAdjListTimes(source).put(newCont.hashCode(),newCont)
-    inAdjListTimes(dest).put(newContIn.hashCode(),newContIn)
+    outAdjListTimes(source).add(new Contact(dest,time))
+    inAdjListTimes(dest).add(new Contact(source,time))
     if (!directed) {
       outAdjList(dest).add(source)
       inAdjList(source).add(dest)
-      outAdjListTimes(dest).put(newContIn.hashCode(),newContIn)
-      inAdjListTimes(source).put(newCont.hashCode(),newCont)
+      outAdjListTimes(dest).add(new Contact(source,time))
+      inAdjListTimes(source).add(new Contact(dest,time))
     }
     this
   }
@@ -168,18 +157,16 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
     //computing times |inf| and |sup| for in edges
     val initeratore = inAdjListTimes(destination).iterator
     while (initeratore.hasNext()){
-      initeratore.advance
-      val element = initeratore.value
+      val element = initeratore.next
       element.time match {
         case x if (x > time) => {inSup += 1}
         case x if (x < time) => {
           inInf += 1
           //TODO override equals and hashcode in Contact for the use of hashmap with object, if contacts are multiples for single edge, override is necessary
-          //if(outAdjList(element.node).contains(destination)){
-          //if(outAdjListTimes(element.node).containsKey((new Contact(destination,time).hashCode))){
+          if(outAdjList(element.node).contains(destination)){
             if(time - x <= delta) inDeltaRespected += 1
             else inDeltaNotRespected += 1
-          //}
+          }
         }
         case _ => {}
       } 
@@ -188,17 +175,14 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
     //computing times |inf| and |sup| for out edges
     val outiteratore = outAdjListTimes(destination).iterator
     while (outiteratore.hasNext()){
-      outiteratore.advance
-      val element = outiteratore.value
+      val element = outiteratore.next
       element.time match {
         case x if (x > time) => {
           outSup += 1
-          //if(inAdjList(element.node).contains((destination))){
-          //val param = new Contact(destination,time)
-          //if(inAdjListTimes(element.node).containsKey(param.hashCode())){
+          if(inAdjList(element.node).contains((destination))){
             if(x - time <= delta) inDeltaRespected += 1
             else inDeltaNotRespected += 1
-          //}
+          }
         }
         case x if (x < time) => outInf += 1
         case _ => {}
@@ -235,7 +219,7 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
     * @param delta: number that represent delta condition
     * @return Boolean: true if compatibility is possible, false otherwise
     */
-  def testCompatibility(target:TemporalGraph, nodeQ:Int, nodeT:Int, delta:Int): Boolean = {
+  def testCompatibility(target:TemporalGraphNew, nodeQ:Int, nodeT:Int, delta:Int): Boolean = {
         
     val inQuerySize = inAdjList(nodeQ).size()
     val inTargetSize = target.inAdjList(nodeT).size()
@@ -246,12 +230,10 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
     var i = 0
     while(inIteratorQuery.hasNext()){
       deltaConditionQuery(i)= new Conditions(0,0,0)
-      inIteratorQuery.advance()
-      val elementQueryin = inIteratorQuery.value()
+      val elementQueryin = inIteratorQuery.next()
       val outIteratorQuery = outAdjListTimes(nodeQ).iterator()
       while(outIteratorQuery.hasNext()){
-        outIteratorQuery.advance()
-        val elementQueryout = outIteratorQuery.value()
+        val elementQueryout = outIteratorQuery.next()
         elementQueryin.time match {
           case x if (x < elementQueryout.time && (elementQueryout.time - x) <= delta ) => {
             deltaConditionQuery(i).deltaRespected += 1
@@ -270,12 +252,10 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
     i=0
     while(inIteratorTarget.hasNext()){
       deltaConditionTarget(i)= new Conditions(0,0,0)
-      inIteratorTarget.advance()
-      val elementTargetin = inIteratorTarget.value()
+      val elementTargetin = inIteratorTarget.next()
       val outIteratorTarget = target.outAdjListTimes(nodeT).iterator()
       while(outIteratorTarget.hasNext()){
-        outIteratorTarget.advance()
-        val elementTargetout = outIteratorTarget.value()
+        val elementTargetout = outIteratorTarget.next()
         elementTargetin.time match {
           case x if (x < elementTargetout.time && (elementTargetout.time - x) <= delta ) => {
             deltaConditionTarget(i).deltaRespected += 1
@@ -317,7 +297,7 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
     * @param delta
     * @return
     */
-  def testNodesMapping(target:TemporalGraph,nodeQ:Int,nodeT:Int,mappingsPermanent:Array[Int],delta:Int = 5) : Boolean = {
+  def testNodesMapping(target:TemporalGraphNew,nodeQ:Int,nodeT:Int,mappingsPermanent:Array[Int],delta:Int = 5) : Boolean = {
       //decomment if compatibility domains are not used (the control is done in the compatibity domains)
       //if((inAdjListTimes(nodeQ).size() > target.inAdjListTimes(nodeT).size()) || (outAdjListTimes(nodeQ).size() > target.outAdjListTimes(nodeT).size()))return false
       //partial mapping
@@ -330,27 +310,23 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
           countmap+=1
       }
       /*
-      var iteratorQueryIn = query.inAdjListTimes(nodeQ).iterator()
+      var iteratorQueryIn = query2.inAdjListTimes(nodeQ).iterator()
       while(iteratorQueryIn.hasNext()){
-              iteratorQueryIn.advance()
-              val elementQuery = iteratorQueryIn.value()
-              val iteratorTarget = target.inAdjListTimes(nodeT).iterator()
+                val elementQuery = iteratorQueryIn.next()
+              val iteratorTarget = target2.inAdjListTimes(nodeT).iterator()
               while(iteratorTarget.hasNext() && mappings(elementQuery.node)<0){
-                iteratorTarget.advance()
-                val elementTarget = iteratorTarget.value()
-      if(query.controlTemporals(_<=_,query.nodeTemporalStructure(elementQuery.node,elementQuery.time,100),target.nodeTemporalStructure(elementTarget.node,elementTarget.time,100))){
+                val elementTarget = iteratorTarget.next()
+      if(query2.controlTemporals(_<=_,query2.nodeTemporalStructure(elementQuery.node,elementQuery.time,100),target2.nodeTemporalStructure(elementTarget.node,elementTarget.time,100))){
         mappings(elementQuery.node)=elementTarget.node
         countmap+=1
       }}}
-      var iteratorQueryOut = query.outAdjListTimes(nodeQ).iterator()
+      var iteratorQueryOut = query2.outAdjListTimes(nodeQ).iterator()
       while(iteratorQueryOut.hasNext()){
-              iteratorQueryOut.advance()
-              val elementQuery = iteratorQueryOut.value()
-              val iteratorTarget = target.outAdjListTimes(nodeT).iterator()
+                val elementQuery = iteratorQueryOut.next()
+              val iteratorTarget = target2.outAdjListTimes(nodeT).iterator()
               while(iteratorTarget.hasNext() && mappings(elementQuery.node)<0){
-                iteratorTarget.advance()
-                val elementTarget = iteratorTarget.value()
-      if(query.controlTemporals(_<=_,query.nodeTemporalStructure(elementQuery.node,elementQuery.time,100),target.nodeTemporalStructure(elementTarget.node,elementTarget.time,100))){
+                val elementTarget = iteratorTarget.next()
+      if(query2.controlTemporals(_<=_,query2.nodeTemporalStructure(elementQuery.node,elementQuery.time,100),target2.nodeTemporalStructure(elementTarget.node,elementTarget.time,100))){
         mappings(elementQuery.node)=elementTarget.node
         countmap+=1
       }}}
@@ -358,14 +334,12 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
       //entering edges
       val iteratorQueryIn = inAdjListTimes(nodeQ).iterator()
       while(iteratorQueryIn.hasNext()){
-        iteratorQueryIn.advance()
-        val elementQuery = iteratorQueryIn.value()
+        val elementQuery = iteratorQueryIn.next()
         val iteratorTarget = target.inAdjListTimes(nodeT).iterator()
         //problem with mapping condition if some temporals structure are similar but one node can map to two or more different node, and at the same time, another node could map to only one node
         //a solution to this problem should be the control of all the temporals structures to find the minor one that is not mapped
         while(iteratorTarget.hasNext() && mappings(elementQuery.node)<0){
-          iteratorTarget.advance()
-          val elementTarget = iteratorTarget.value()
+          val elementTarget = iteratorTarget.next()
           if(controlTemporals(_<=_,
                 nodeTemporalStructure(elementQuery.node,elementQuery.time,delta),
                 target.nodeTemporalStructure(elementTarget.node,elementTarget.time,delta))){
@@ -378,12 +352,10 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
       //out edges
       val iteratorQueryOut = outAdjListTimes(nodeQ).iterator()
       while(iteratorQueryOut.hasNext()){
-        iteratorQueryOut.advance()
-        val elementQuery = iteratorQueryOut.value()
+        val elementQuery = iteratorQueryOut.next()
         val iteratorTarget = target.outAdjListTimes(nodeT).iterator()
         while(iteratorTarget.hasNext() && mappings(elementQuery.node)<0){
-          iteratorTarget.advance()
-          val elementTarget = iteratorTarget.value()
+          val elementTarget = iteratorTarget.next()
           if(controlTemporals(_<=_,
                 nodeTemporalStructure(elementQuery.node,elementQuery.time,delta),
                 target.nodeTemporalStructure(elementTarget.node,elementTarget.time,delta))){
@@ -579,10 +551,7 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
       //val it: TIntIterator = outAdjList(i).iterator()
       val it = outAdjListTimes(i).iterator()
       //str.append(it.next())
-      while (it.hasNext) {
-        it.advance
-        str.append(",").append(it.value())
-      }
+      while (it.hasNext) str.append(",").append(it.next())
       str.append("}\n") 
     }
     str.toString

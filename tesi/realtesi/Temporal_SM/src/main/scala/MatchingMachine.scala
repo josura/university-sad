@@ -45,6 +45,7 @@ class MatchingMachine (query:TemporalGraph) {
 //Type of node mapped to parent state of each state S, i.e. predecessor or successor
   var parent_type: Array[MamaParentType] =new  Array[MamaParentType](nof_sn)
 
+  build(query)
   /*
 	Build the matching state machine for a query graph
 	@param ssg: query graph
@@ -53,6 +54,8 @@ class MatchingMachine (query:TemporalGraph) {
   def build(ssg: TemporalGraph): Unit = {
     val outAdiacs: Array[TIntHashSet] = ssg.getOutAdjList
     val inAdiacs: Array[TIntHashSet] = ssg.getInAdjList
+    val outAdiacsTimes = ssg.outAdjListTimes
+    val inAdiacsTimes = ssg.inAdjListTimes
     val node_flags: Array[NodeFlag] = Array.ofDim[NodeFlag](nof_sn)
     val weights: Array[Array[Int]] = Array.ofDim[Int](nof_sn, 3)
     val t_parent_node: Array[Int] = Array.ofDim[Int](nof_sn)
@@ -194,20 +197,37 @@ class MatchingMachine (query:TemporalGraph) {
       edges(si) = Array.ofDim[MaMaEdge](e_count)
       e_count = 0
       it = outAdiacs(n).iterator()
+
+      var itTimes = outAdiacsTimes(n).iterator()
+      var truesource=n
+      var truetarget=0
       while (it.hasNext) {
         val idOut: Int = it.next()
+        var time = 0
+        if (itTimes.hasNext()){
+          itTimes.advance()
+          time = itTimes.value().time
+          truetarget = itTimes.value().node
+        }
         if (map_node_to_state(idOut) < si) {
-          edges(si)(e_count) =new MaMaEdge(map_node_to_state(n), map_node_to_state(idOut)) 
-              e_count += 1
+          edges(si)(e_count) =new MaMaEdge(map_node_to_state(n), map_node_to_state(idOut),time,truesource,truetarget) 
+          e_count += 1
         }
       }
       for (j <- 0 until si) {
         val sn: Int = map_state_to_node(j)
         it = outAdiacs(sn).iterator()
+        itTimes = outAdiacsTimes(sn).iterator()
         while (it.hasNext) {
           val idOut: Int = it.next()
+          var time = 0
+          if (itTimes.hasNext()){
+            itTimes.advance()
+            time = itTimes.value().time
+            truetarget = itTimes.value().node
+          }
           if (idOut == n) {
-            edges(si)(e_count) = new MaMaEdge(j, si) 
+            edges(si)(e_count) = new MaMaEdge(j, si,time,sn,truetarget) 
               e_count += 1
             
           }
