@@ -1,1 +1,1 @@
-final case class MaMaEdge(source:Int,target:Int,time:Int,trueSource:Int,truetarget:Int)
+final case class MaMaEdge(source:Int,target:Int,time:Int)

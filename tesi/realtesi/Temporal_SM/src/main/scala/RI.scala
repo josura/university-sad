@@ -20,6 +20,7 @@ object RI {
 //Output result file
     var outputFile: String = "results.txt"
 //Reading input parameters
+/*
     var i =0;
     while(i < args.length) {
         args(i) match {
@@ -46,11 +47,11 @@ object RI {
       println("Error! No queries file has been specified!\n")
       printHelp()
       System.exit(1)
-    }
+    }*/
 //Read input network
     println("\nReading graph file...")
     val fm: FileManager = new FileManager()
-    val net: TemporalGraph = fm.readGraph(netFile)
+    val net: TemporalGraph = fm.readGraph("data/SFHH-conf-sensor.edges")
 //Read queries file
     println("Reading queries file...")
 //List of all read queries

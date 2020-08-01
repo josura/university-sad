@@ -91,7 +91,6 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
             //&& queryGraph.testNodesMapping(targetGraph,mama map_state_to_node si,,solution,delta)
             ){
               notmatched=false
-              println("match found for query node " + mama.map_state_to_node(si) + " to target node but i dont know" + ci)
             } else ci = -1
 //Mapping is not feasible, go on with next candidate
         if (notmatched)candidatesIT(si) += 1
@@ -156,7 +155,7 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
     for (i <- 0 until numTargetNodes) {
 //Find compatible query nodes and update domains
       for (j <- 0 until domains.length) {
-        if (//queryGraph.testCompatibility(targetGraph,j,i,delta) && 
+        if (queryGraph.testCompatibility(targetGraph,j,i,delta) && 
             queryOutAdjLists(j).size <= targetOutAdjLists(i).size &&
             queryInAdjLists(j).size <= targetInAdjLists(i).size) {
           domains(j).set(i)
@@ -231,8 +230,8 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
     val targetOutAdjLists: Array[TIntHashSet] = targetGraph.getOutAdjList
     val targetInAdjLists: Array[TIntHashSet] = targetGraph.getInAdjList
     for (me <- 0 until mama.edges_sizes(si)) {
-      val querySource = mama.edges(si)(me).trueSource
-      val queryDest = mama.edges(si)(me).truetarget
+      val querySource = mama.map_state_to_node(mama.edges(si)(me).source)
+      val queryDest = mama.map_state_to_node(mama.edges(si)(me).target)
       val queryTime = mama.edges(si)(me).time
       val source: Int = solution(mama.edges(si)(me).source)
       val target: Int = solution(mama.edges(si)(me).target)

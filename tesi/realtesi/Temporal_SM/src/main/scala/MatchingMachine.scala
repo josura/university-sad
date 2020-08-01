@@ -199,18 +199,15 @@ class MatchingMachine (query:TemporalGraph) {
       it = outAdiacs(n).iterator()
 
       var itTimes = outAdiacsTimes(n).iterator()
-      var truesource=n
-      var truetarget=0
       while (it.hasNext) {
         val idOut: Int = it.next()
         var time = 0
         if (itTimes.hasNext()){
           itTimes.advance()
           time = itTimes.value().time
-          truetarget = itTimes.value().node
         }
         if (map_node_to_state(idOut) < si) {
-          edges(si)(e_count) =new MaMaEdge(map_node_to_state(n), map_node_to_state(idOut),time,truesource,truetarget) 
+          edges(si)(e_count) =new MaMaEdge(map_node_to_state(n), map_node_to_state(idOut),time) 
           e_count += 1
         }
       }
@@ -224,10 +221,9 @@ class MatchingMachine (query:TemporalGraph) {
           if (itTimes.hasNext()){
             itTimes.advance()
             time = itTimes.value().time
-            truetarget = itTimes.value().node
           }
           if (idOut == n) {
-            edges(si)(e_count) = new MaMaEdge(j, si,time,sn,truetarget) 
+            edges(si)(e_count) = new MaMaEdge(j, si,time) 
               e_count += 1
             
           }

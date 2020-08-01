@@ -11,9 +11,12 @@ class TemporalGraphTest extends AnyFunSuite {
 
     val query2 = new TemporalGraph(true, 4)
     query2.addEdge(1,0,2).addEdge(0,2,8).addEdge(2,1,3).addEdge(1,3,1).addEdge(3,0,4)
-    val target2 = new TemporalGraph(true, 7)
-    target2.addEdge(0,1,1).addEdge(0,3,2).addEdge(1,4,3).addEdge(1,3,5).addEdge(2,0,4).addEdge(3,2,10).addEdge(4,5,4).addEdge(5,6,6).addEdge(5,3,2).addEdge(6,3,4)
+    val target2 = new TemporalGraph(true, 14)
+    target2.addEdge(0,1,1).addEdge(0,3,2).addEdge(1,4,3).addEdge(1,3,5).addEdge(2,0,4).addEdge(3,2,10).addEdge(4,5,4).addEdge(5,6,6).addEdge(5,3,2).addEdge(6,3,4).
+        addEdge(6,8,12).addEdge(6,10,9).addEdge(7,6,6).addEdge(7,9,5).addEdge(8,7,7).addEdge(9,6,9).
+        addEdge(10,12,2).addEdge(11,10,3).addEdge(11,12,1).addEdge(11,13,8).addEdge(13,10,20)
 
+    val RIProva2 = new RISolver(target2,false)
 
     test("test contains node 0"){
         var param=new query.Contact(1,1)
@@ -28,6 +31,11 @@ class TemporalGraphTest extends AnyFunSuite {
     test("RISolver 1"){
         RIProva.solve(query,5)
         assert(RIProva.getNumMatches()==1)
+    }
+
+    test("RISolver 2"){
+        RIProva2.solve(query2,5)
+        assert(RIProva2.getNumMatches()==2)
     }
 
     test("test mapping condition 1"){
