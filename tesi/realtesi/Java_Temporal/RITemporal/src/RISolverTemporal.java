@@ -41,7 +41,7 @@ public class RISolverTemporal
 		//Build the state space representation machine
 		this.mama=new MatchingMachine(queryGraph);
 		//Compute the set of query symmetry breaking conditions
-		Vector<Integer>[] symmCond=queryGraph.getSymmetryConditions();
+		Vector<Integer>[] symmCond=queryGraph.getSymmetryConditions(delta);
 
 		TIntHashSet[] targetOutAdjLists=targetGraph.getOutAdjList();
 		TIntHashSet[] targetInAdjLists=targetGraph.getInAdjList();
@@ -148,7 +148,6 @@ public class RISolverTemporal
 				}
 			}
 		}
-		System.out.println("daiii");
 	}
 
 	/*

@@ -100,8 +100,8 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
 	 * Get the list of symmetry breaking conditions of the graph
 	 * @return symmBreak: list of symmetry breaking condition
 	 */
-  def getSymmetryConditions(): Array[Vector[Integer]] = {
-     val vv: Vector[Array[Int]] = findAutomorphisms()
+  def getSymmetryConditions(delta : Int): Array[Vector[Integer]] = {
+     val vv: Vector[Array[Int]] = findAutomorphisms(delta)
     val numNodes: Int = outAdjList.length
     val listCond: Array[Vector[Integer]] =new Array[Vector[Integer]](numNodes)
     for (i <- 0 until listCond.length) {
@@ -401,7 +401,7 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
 	@param adjMat: adjacency matrix of a graph
 	*/
 
-  private def findAutomorphisms(): Vector[Array[Int]] = {
+  private def findAutomorphisms(delta:Int): Vector[Array[Int]] = {
     val nof_nodes: Int = outAdjList.length
     val fDir: Array[Int] = Array.ofDim[Int](nof_nodes)
     val fRev: Array[Int] = Array.ofDim[Int](nof_nodes)
@@ -450,7 +450,7 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
         fDir(0) = g
         fRev(g) = 0
         val pos: Int = 1
-        isomorphicExtensions(fDir, fRev, vv, support, pos)
+        isomorphicExtensions(fDir, fRev, vv, support, pos,delta)
         fRev(fDir(0)) = -1
         fDir(0) = -1
       }
@@ -466,7 +466,8 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
                                    fRev: Array[Int],
                                    vv: Vector[Array[Int]],
                                    support: Array[Boolean],
-                                   pos: Int): Unit = {
+                                   pos: Int,
+                                   delta:Int): Unit = {
     val nof_nodes: Int = fDir.length
     val cand: Array[Int] = Array.ofDim[Int](nof_nodes)
     var ncand: Int = 0
@@ -542,11 +543,20 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
         loop.breakable{
           for (j <- 0 until nof_nodes) {
             if (fDir(j) != -1) {
-              if (outAdjList(m).contains(j) != outAdjList(n).contains(fDir(j))) {
+              val cont1 = outAdjListTimes(m).get(j);
+              val cont2 = outAdjListTimes(n).get(fDir(j));
+              if (outAdjList(m).contains(j) != outAdjList(n).contains(fDir(j)) ||
+                  (cont1!=null &&
+                  cont2!=null &&		
+                  !controlTemporals(_<=_, nodeTemporalStructure(cont1.node,cont1.time,delta),nodeTemporalStructure(cont2.node,cont2.time,delta)))
+                  ) {
                 flag = true
                 loop.break
-              } else if (outAdjList(j).contains(m) != outAdjList(fDir(j))
-                          .contains(n)) {
+              } else if (outAdjList(j).contains(m) != outAdjList(fDir(j)).contains(n) ||
+                          (cont1!=null &&
+                          cont2!=null &&		
+                          !controlTemporals(_<=_,nodeTemporalStructure(cont1.node,cont1.time,delta),nodeTemporalStructure(cont2.node,cont2.time,delta)))
+                          ) {
                 flag = true
                 loop.break
               }
@@ -559,7 +569,7 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
           fRev(n) = m 
           var tmp:Int=pos
           tmp += 1
-          isomorphicExtensions(fDir, fRev, vv, support, pos) 
+          isomorphicExtensions(fDir, fRev, vv, support, pos,delta) 
           tmp -= 1
           fRev(fDir(m)) = -1
           fDir(m) = -1

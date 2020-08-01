@@ -103,10 +103,10 @@ public class TemporalGraph {
 	Get the list of symmetry breaking conditions of the graph
 	@param adjMat: adjacency matrix of a graph
 	*/
-    public Vector<Integer>[] getSymmetryConditions()
+    public Vector<Integer>[] getSymmetryConditions(int delta)
     {
         int i, j, k;
-        Vector<int[]> vv=findAutomorphisms();
+        Vector<int[]> vv=findAutomorphisms(delta);
         int numNodes=outAdjList.length;
         Vector<Integer>[] listCond=new Vector[numNodes];
         for(i=0;i<listCond.length;i++)
@@ -147,7 +147,7 @@ public class TemporalGraph {
 	Computes all possible automorphisms of a graph
 	@param adjMat: adjacency matrix of a graph
 	*/
-    private Vector<int[]> findAutomorphisms()
+    private Vector<int[]> findAutomorphisms(int delta)
     {
         int i, j, k;
         int g;
@@ -207,7 +207,7 @@ public class TemporalGraph {
                 fDir[0] = g;
                 fRev[g] = 0;
                 int pos = 1;
-                isomorphicExtensions(fDir, fRev, vv, support, pos);
+                isomorphicExtensions(fDir, fRev, vv, support, pos,delta);
                 fRev[fDir[0]] = -1;
                 fDir[0] = -1;
             }
@@ -218,7 +218,7 @@ public class TemporalGraph {
     /*
 	Computes all isomorphic extensions for a graph
 	*/
-    private void isomorphicExtensions(int[] fDir, int[] fRev, Vector<int[]> vv, boolean[] support, int pos)
+    private void isomorphicExtensions(int[] fDir, int[] fRev, Vector<int[]> vv, boolean[] support, int pos, int delta)
     {
         int i, j;
         int nof_nodes = fDir.length;
@@ -310,15 +310,30 @@ public class TemporalGraph {
                 {
                     if(fDir[j]!=-1)
                     {
-                        if(outAdjList[m].contains(j)!=outAdjList[n].contains(fDir[j]))
+                    	//if temporal structure is not the same than ...
+                    	Contact cont1 = outAdjListTimes[m].get(j);
+                    	Contact cont2 = outAdjListTimes[n].get(fDir[j]);
+                        if(outAdjList[m].contains(j)!=outAdjList[n].contains(fDir[j]) ||
+                        		(cont1!=null &&
+                    			cont2!=null &&		
+                        		!controlTemporals(nodeTemporalStructure(cont1.node,cont1.time,delta),nodeTemporalStructure(cont2.node,cont2.time,delta)))
+                        		)
                         {
                             flag=true;
                             break;
                         }
-                        else if(outAdjList[j].contains(m)!=outAdjList[fDir[j]].contains(n))
-                        {
-                            flag=true;
-                            break;
+                        else {
+                        	cont1 = outAdjListTimes[j].get(m);
+                        	cont2 = outAdjListTimes[fDir[j]].get(n);
+                        	if(outAdjList[j].contains(m)!=outAdjList[fDir[j]].contains(n) ||
+                        			(cont1!=null &&
+                        			cont2!=null &&
+                        			!controlTemporals(nodeTemporalStructure(cont1.node,cont1.time,delta),nodeTemporalStructure(cont2.node,cont2.time,delta)))
+                        			)
+                        	{
+	                            flag=true;
+	                            break;
+	                        }
                         }
                     }
                 }
@@ -327,7 +342,7 @@ public class TemporalGraph {
                     fDir[m] = n;
                     fRev[n] = m;
                     pos++;
-                    isomorphicExtensions(fDir, fRev, vv, support, pos);
+                    isomorphicExtensions(fDir, fRev, vv, support, pos,delta);
                     pos--;
                     fRev[fDir[m]] = -1;
                     fDir[m] = -1;

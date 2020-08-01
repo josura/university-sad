@@ -35,7 +35,7 @@ class RISolver(tGraph: TemporalGraph,induc:Boolean) {
 //Compute compatibility domains
     val domains: Array[BitSet] = computeDomains(queryGraph,delta)
 //Compute the set of query symmetry breaking conditions
-    val symmCond: Array[Vector[Integer]] = queryGraph.getSymmetryConditions
+    val symmCond: Array[Vector[Integer]] = queryGraph.getSymmetryConditions(delta)
     val targetOutAdjLists: Array[TIntHashSet] = targetGraph.getOutAdjList
     val targetInAdjLists: Array[TIntHashSet] = targetGraph.getInAdjList
     val nofTargetNodes: Int = targetGraph.getNumNodes
