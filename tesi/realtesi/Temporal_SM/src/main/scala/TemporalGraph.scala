@@ -172,14 +172,11 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
       val element = initeratore.value
       element.time match {
         case x if (x > time) => {inSup += 1}
-        case x if (x < time) => {
+        //equal times contacts are seen as not time-respecting
+        case x if (x <= time) => {
           inInf += 1
-          //TODO override equals and hashcode in Contact for the use of hashmap with object, if contacts are multiples for single edge, override is necessary
-          //if(outAdjList(element.node).contains(destination)){
-          //if(outAdjListTimes(element.node).containsKey((new Contact(destination,time).hashCode))){
             if(time - x <= delta) inDeltaRespected += 1
             else inDeltaNotRespected += 1
-          //}
         }
         case _ => {}
       } 
@@ -200,7 +197,7 @@ class TemporalGraph(val directed:Boolean,numNodes:Int) {
             else inDeltaNotRespected += 1
           //}
         }
-        case x if (x < time) => outInf += 1
+        case x if (x <= time) => outInf += 1
         case _ => {}
       } 
     }
