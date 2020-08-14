@@ -105,18 +105,18 @@ public class FileManagerTemporal
 	/*
 	Write query results to output file
 	*/
-    public void writeResults(Vector<Graph> setQueries, Vector<Long> setCounts, Vector<Double> setRunningTimes, String outputFile)
+    public void writeResults(Vector<TemporalGraph> setQueries,TemporalGraph target, Vector<Long> setCounts, Vector<Double> setRunningTimes, String outputFile)
     {
         try
         {
             BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
-            bw.write("Query\tNum_occ\tTime (secs)\n");
+            bw.write("QueryID,numnodesQuery,numedgesQuery,numnodesTarget,numedgesTarget,matchNumber,tNum_occtTime (secs)\n");
             int i;
             for(i=0;i<setQueries.size();i++)
             {
-                Graph q=setQueries.get(i);
+                TemporalGraph q=setQueries.get(i);
                 String adjString=q.getAdjString();
-                bw.write(adjString+"\t"+setCounts.get(i)+"\t"+setRunningTimes.get(i)+"\n");
+                bw.write(adjString+","+q.getNumNodes()+","+q.getNumedges()+","+target.getNumNodes()+","+target.getNumedges()+","+setCounts.get(i)+","+setRunningTimes.get(i)+"\n");
             }
             bw.close();
         }

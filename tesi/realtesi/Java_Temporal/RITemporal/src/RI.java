@@ -3,6 +3,8 @@ MAIN CLASS
 Run RI algorithm for finding the number of occurrences of a query graph in the target graph
 */
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.Vector;
 
 import gnu.trove.iterator.TIntObjectIterator;
@@ -92,40 +94,13 @@ public class RI
         //Write results to output file
         fm.writeResults(setQueries,setCounts,setRunningTimes,outputFile);
         System.out.println("Results written in "+outputFile);*/
-		System.out.println("ci siam");
 		
-		Graph queryNorm = new Graph(true, 4);
-	    queryNorm.addEdge(0,1).addEdge(0,2).addEdge(1,3).addEdge(3,2).addEdge(1,2);
-	    Graph targetNorm = new Graph(true, 7);
-	    targetNorm.addEdge(0,2).addEdge(2,1).addEdge(2,3).addEdge(2,4).addEdge(3,5).addEdge(3,6).addEdge(5,6).addEdge(6,4).addEdge(5,0).addEdge(3,4);
-	    RISolver ri=new RISolver(targetNorm,false);
-	    
+		    
 		TemporalGraph query = new TemporalGraph(true, 4);
 	    query.addEdge(0,1,1).addEdge(0,2,1).addEdge(1,3,3).addEdge(3,2,4).addEdge(1,2,8);
 	    TemporalGraph target = new TemporalGraph(true, 7);
 	    target.addEdge(0,2,1).addEdge(2,1,2).addEdge(2,3,2).addEdge(2,4,2).addEdge(3,5,3).addEdge(3,6,3).addEdge(5,6,6).addEdge(6,4,4).addEdge(5,0,4).addEdge(3,4,8);
-	    
-	    Vector<Integer> prova = query.nodeTemporalStructure(1, 1, 5);
-	    Vector<Integer> prova2 = query.nodeTemporalStructure(3, 3, 5);
-	    Vector<Integer> prova3 = target.nodeTemporalStructure(3, 2, 5);
-	    Vector<Integer> prova4 = target.nodeTemporalStructure(6, 3, 5);
-	    
-	    if(query.controlTemporals(prova, prova3))System.out.println("dai che por");
-	    if(query.controlTemporals(prova2, prova4))System.out.println("tiamo a spippo");
-
-	    if(query.testCompatibility(target, 0, 2, 5))System.out.println("vabeh ci siamo");
-	    if(query.testCompatibility(target, 1, 3, 5))System.out.println("vabeh ci siamo");
-	    if(query.testCompatibility(target, 2, 4, 5))System.out.println("vabeh ci siamo");
-	    if(query.testCompatibility(target, 3, 6, 5))System.out.println("vabeh ci siamo");
-	    if(!query.testCompatibility(target, 1, 0, 5))System.out.println("vabeh ci siamo");
-	    if(!query.testCompatibility(target, 1, 1, 5))System.out.println("vabeh ci siamo");
-	    if(!query.testCompatibility(target, 1, 4, 5))System.out.println("vabeh ci siamo");
-	    
-	    RISolverTemporal riTemp = new RISolverTemporal(target, false);
-		  
-	    riTemp.solve(query, 5);
-	    System.out.println("numero match" + riTemp.getNumMatches());
-	    
+	       
 	    TemporalGraph query2 = new TemporalGraph(true, 4);
 	    query2.addEdge(1,0,2).addEdge(0,2,8).addEdge(2,1,3).addEdge(1,3,1).addEdge(3,0,4);
 	    TemporalGraph target2 = new TemporalGraph(true, 14);
@@ -133,22 +108,44 @@ public class RI
 	        addEdge(6,8,12).addEdge(6,10,9).addEdge(7,6,6).addEdge(7,9,5).addEdge(8,7,7).addEdge(9,6,9).
 	        addEdge(10,12,2).addEdge(11,10,3).addEdge(11,12,1).addEdge(11,13,8).addEdge(13,10,20);
 	    
-	    RISolverTemporal riTemp2 = new RISolverTemporal(target2, false);
-		  
-	    riTemp2.solve(query2, 5);
-	    System.out.println("numero match" + riTemp2.getNumMatches());
-	    
 	    FileManagerTemporal fm  = new FileManagerTemporal();
-	    TemporalGraph net= fm.readGraph("data/SFHH-conf-sensor.edges");
+	    String nomeDataset = "copresence-InVS15.edges";
+	    TemporalGraph net= fm.readGraph("data/"+nomeDataset);
 	    
 	    RISolverTemporal rinet = new RISolverTemporal(net, false);
 	    rinet.solve(query2, 1000);
 	    System.out.println("numero match net" + rinet.getNumMatches());
 	    
+	    //List of counts, one for each read query
+        Vector<Long> setCounts=new Vector<>();
+        //List of all running times, one for each read query
+        Vector<Double> setRunningTimes=new Vector<>();
+
+        Vector<TemporalGraph> setQueries= new Vector<>();
+        setQueries.add(query);
+        setQueries.add(query2);
+        String outputFile="risultati"+nomeDataset+".csv";
+        
+        for(int i=0;i<setQueries.size();i++)
+        {
+            System.out.println("Matching query "+(i+1)+"...");
+            long inizio=System.currentTimeMillis();
+            TemporalGraph q=setQueries.get(i);
+            rinet.solve(q,1000);
+            long numOccs=rinet.getNumMatches();
+            setCounts.add(numOccs);
+            double fine=System.currentTimeMillis();
+            double totalTime=(fine-inizio)/1000;
+            setRunningTimes.add(totalTime);
+            System.out.println("Done! Found "+numOccs+" occurrences");
+        }
+        
+        fm.writeResults(setQueries, net, setCounts, setRunningTimes, outputFile);
 	    
 	    /*ri.solve(queryNorm);
 	    System.out.println("numero match" + ri.getNumMatches());
 	    */
+        System.out.println("finished");
     }
 	
 	/*

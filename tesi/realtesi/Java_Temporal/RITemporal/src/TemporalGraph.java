@@ -21,6 +21,7 @@ public class TemporalGraph {
     private final TIntObjectHashMap<Contact>[] outAdjListTimes;
     private final TIntObjectHashMap<Contact>[] inAdjListTimes;
     private final boolean directed;
+    private int numedges;
 	/*
 	Constructor
 	@param directed: is the graph directed or not?
@@ -33,6 +34,7 @@ public class TemporalGraph {
 		this.directed=directed;
         this.outAdjList=new TIntHashSet[numNodes];
         this.inAdjList=new TIntHashSet[numNodes];
+        numedges=0;
         for(int i=0;i<numNodes;i++)
         {
             outAdjList[i] = new TIntHashSet();
@@ -62,6 +64,7 @@ public class TemporalGraph {
     
     public TemporalGraph addEdge(int source, int dest,int time)
     {
+    	numedges++;
         outAdjList[source].add(dest);
         inAdjList[dest].add(source);
         Contact outnew = new Contact(dest, time);
@@ -387,7 +390,7 @@ public class TemporalGraph {
          Contact element = initeratore.value();
          if(element.time > time) {
         	 inSup ++;
-         } else if (element.time < time) {
+         } else if (element.time <= time) {
         	 inInf++;
         	 if(time - element.time <= delta) {
         		 inDeltaRespected++;
@@ -397,6 +400,8 @@ public class TemporalGraph {
          }
          
        }
+       
+       //TODO manage contacts that have the same times
 
        //computing times |inf| and |sup| for out edges
        TIntObjectIterator<Contact> outiteratore = outAdjListTimes[destination].iterator();
@@ -411,7 +416,7 @@ public class TemporalGraph {
         		 inDeltaNotRespected++;
         	 }
         	 
-         } else if (element.time < time) {
+         } else if (element.time <= time) {
         	 outInf++;
         	 
          } 
@@ -558,6 +563,10 @@ public class TemporalGraph {
 
 	public TIntObjectHashMap<Contact>[] getInAdjListTimes() {
 		return inAdjListTimes;
+	}
+
+	public int getNumedges() {
+		return numedges;
 	}
 
 }
