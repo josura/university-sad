@@ -5,6 +5,7 @@ import gnu.trove.set.hash.TIntHashSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -512,6 +513,99 @@ public class TemporalGraph {
       return (matchedInEdges == inAdjList[nodeQ].size());//)  
     }
     
+    /**
+     * return subgraph of nodes specified
+     * @param Vector of nodes
+     * @return subgraph of the nodes specified
+     */
+    public TemporalGraph subgraph(Vector<Integer> nodes) {
+    	int finalNodes = nodes.size();
+    	TemporalGraph retGraph = new TemporalGraph(true,finalNodes);
+    	for (Iterator iterator = nodes.iterator(); iterator.hasNext();) {
+			Integer integer = (Integer) iterator.next();
+	    	TIntObjectIterator<Contact> outIterator = outAdjListTimes[integer].iterator();
+	    	int srcIndex = nodes.indexOf(integer);
+	    	while(outIterator.hasNext()){
+	            outIterator.advance();
+	            Contact element = outIterator.value();
+	            if(nodes.contains(element.node))
+	            	retGraph.addEdge(srcIndex, nodes.indexOf(element.node),element.time);
+	    	}
+	    	
+			
+		}
+    	return retGraph;
+    }
+    
+    public int getRandomNumber(int min, int max) {
+	    return (int) ((Math.random() * (max - min)) + min);
+	}
+    
+    /**
+     * return random subgraph
+     * @param numNod: number of nodes
+     * @return random subgraph
+     */
+    public TemporalGraph randomSubgraph(int numNod) {
+    	Vector<Integer> nodes = new Vector<Integer>(numNod);
+    	int currentIndex=0;
+    	int shift = (getNumNodes()-1+numNod)/numNod;
+    	while(nodes.size()<numNod && currentIndex < getNumNodes()) {
+    		int randnumber;
+    		if(currentIndex+shift < getNumNodes())
+    			randnumber = getRandomNumber(currentIndex, currentIndex+shift);
+    		else randnumber = getRandomNumber(currentIndex, getNumNodes()-1);
+    		nodes.add(randnumber);
+    		currentIndex += shift ;
+    	}
+    	return subgraph(nodes);
+    }
+    
+    
+    int queuePop(TIntHashSet queue) {
+    	int returnVal=-1;
+    	TIntIterator iterator = queue.iterator();
+    	if(iterator.hasNext()) {
+    		returnVal=iterator.next();
+    		queue.remove(returnVal);
+    	}
+    	return returnVal;
+    }
+    /**
+     * return random subgraph where nodes are weakly connected
+     * @param numNod: number of nodes
+     * @return random subgraph
+     */
+    public TemporalGraph randomWeaklyConnectedSubgraph(int numNod) {
+    	Vector<Integer> nodes = new Vector<Integer>(numNod);
+    	int startingnode = getRandomNumber(0, getNumNodes()-1);
+    	TIntHashSet queue= new TIntHashSet();
+    	queue.add(startingnode);
+    	nodes.add(startingnode);
+    	boolean finished=false;
+    	while(nodes.size()<numNod && !finished) {
+    		int CurrentNode = queuePop(queue);
+    		if(CurrentNode==-1) return null;
+    		for (TIntIterator iterator = inAdjList[CurrentNode].iterator(); iterator.hasNext() && !finished;) {
+    			Integer integer = (Integer) iterator.next();
+    			if(!nodes.contains(integer)) {
+    				queue.add(integer);
+    				nodes.add(integer);
+    			}
+    			if(nodes.size()==numNod)finished=true;
+    		}
+    		for (TIntIterator iterator = outAdjList[CurrentNode].iterator(); iterator.hasNext() && !finished;) {
+    			Integer integer = (Integer) iterator.next();
+    			if(!nodes.contains(integer)) {
+    				queue.add(integer);
+    				nodes.add(integer);
+    			}
+    			if(nodes.size()==numNod)finished=true;
+    		}
+    	}
+    	return subgraph(nodes);
+    }
+    
 	/*
 	Print info about the graph
 	*/
@@ -521,11 +615,16 @@ public class TemporalGraph {
         int i;
         for(i=0;i<outAdjList.length;i++)
         {
-            str.append(i).append(" --> ");
-            TIntIterator it=outAdjList[i].iterator();
-            str.append(it.next());
-            while(it.hasNext())
-                str.append(",").append(it.next());
+        	str.append("source: ").append(i).append(" to {");
+            TIntObjectIterator<Contact> it=outAdjListTimes[i].iterator();
+            if(it.hasNext()) {
+	            	it.advance();
+	            	str.append(it.value());
+            	}
+            while(it.hasNext()) {
+            	it.advance();
+                str.append(",").append(it.value());
+            }
             str.append("\n");
         }
         return str.toString();
