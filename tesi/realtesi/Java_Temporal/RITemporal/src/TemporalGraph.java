@@ -513,6 +513,23 @@ public class TemporalGraph {
       return (matchedInEdges == inAdjList[nodeQ].size());//)  
     }
     
+	/**
+	 * final test to see if target subgraph is indeed mappable to query graph
+	 * 
+	 */
+    public boolean testMap(TemporalGraph subtarget,Vector<Integer> mapping,int delta) {
+    	for(int i = 0; i < getNumNodes();i++) {
+    		int nodeQ = mapping.get(i);
+    		int nodeT = i;
+    		//test compatibility, aka fingerprint, and nod equivalence of temporal structure because
+    		//edges in subgraph can be more than necessary
+    		if(!testCompatibility(subtarget, nodeQ, nodeT, delta)) {
+    			return false;
+    		}
+    	}
+    	return true;
+    }
+    
     /**
      * return subgraph of nodes specified
      * @param Vector of nodes
@@ -529,6 +546,25 @@ public class TemporalGraph {
 	            outIterator.advance();
 	            Contact element = outIterator.value();
 	            if(nodes.contains(element.node))
+	            	retGraph.addEdge(srcIndex, nodes.indexOf(element.node),element.time);
+	    	}
+	    	
+			
+		}
+    	return retGraph;
+    }
+    
+    public TemporalGraph subgraphSelectedEdges(Vector<Integer> nodes, TIntHashSet[] edges) {
+    	int finalNodes = nodes.size();
+    	TemporalGraph retGraph = new TemporalGraph(true,finalNodes);
+    	for (Iterator<Integer> iterator = nodes.iterator(); iterator.hasNext();) {
+			Integer integer = (Integer) iterator.next();
+	    	TIntObjectIterator<Contact> outIterator = outAdjListTimes[integer].iterator();
+	    	int srcIndex = nodes.indexOf(integer);
+	    	while(outIterator.hasNext()){
+	            outIterator.advance();
+	            Contact element = outIterator.value();
+	            if(nodes.contains(element.node) && edges[nodes.indexOf(integer)].contains(nodes.indexOf(element.node)))
 	            	retGraph.addEdge(srcIndex, nodes.indexOf(element.node),element.time);
 	    	}
 	    	
