@@ -704,4 +704,5 @@ public class TemporalGraph {
 		return numedges;
 	}
 
+
 }

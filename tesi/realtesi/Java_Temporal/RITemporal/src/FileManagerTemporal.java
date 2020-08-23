@@ -9,6 +9,9 @@ import java.io.FileWriter;
 import java.util.HashMap;
 import java.util.Vector;
 
+import gnu.trove.iterator.TIntObjectIterator;
+import gnu.trove.map.hash.TIntObjectHashMap;
+
 public class FileManagerTemporal
 {
 	
@@ -64,6 +67,32 @@ public class FileManagerTemporal
         }
         return g;
     }
+	public void writeGraph(String file,TemporalGraph graph) {
+		try
+        {
+            BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+            bw.write("nodedef> name VARCHAR\n");
+            TIntObjectHashMap<Contact>[] outAdjListTimes = graph.getOutAdjListTimes();
+            
+            for(int i =0; i<graph.getNumNodes();i++) {
+            	bw.write(i+"\n");
+            }
+            bw.write("edgedef> node1 VARCHAR, node2 VARCHAR, time INT\n");
+            for(int i=0;i<outAdjListTimes.length;i++)
+            {
+                TIntObjectIterator<Contact> it=outAdjListTimes[i].iterator();
+                
+                while(it.hasNext()) {
+                	it.advance();
+                    bw.write(i + "," + it.value().node + ","+ it.value().time+ "\n");
+                }
+            }
+            bw.close();
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+	}
 
     /*
 	Read the set of queries from input file
@@ -115,7 +144,7 @@ public class FileManagerTemporal
             for(i=0;i<setQueries.size();i++)
             {
                 TemporalGraph q=setQueries.get(i);
-                String adjString=q.getAdjString();
+                String adjString="";//q.getAdjString();
                 bw.write(adjString+","+q.getNumNodes()+","+q.getNumedges()+","+target.getNumNodes()+","+target.getNumedges()+","+setCounts.get(i)+","+setRunningTimes.get(i)+"\n");
             }
             bw.close();

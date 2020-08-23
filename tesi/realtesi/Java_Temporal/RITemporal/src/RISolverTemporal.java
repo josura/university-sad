@@ -109,7 +109,9 @@ public class RISolverTemporal
 				if(!matched[ci]
 						&& domains[mama.map_state_to_node[si]].get(ci)
 						&& condCheck(si,solution,symmCond)
-						&& edgesCheck(si,ci,solution,matched,queryGraph,delta))
+						//TODO control on the subgraph and not on the full structure
+						&& edgesCheck(si,ci,solution,matched,queryGraph,delta)
+						)
 					break;
 				else
 					ci=-1;
@@ -128,6 +130,7 @@ public class RISolverTemporal
 				//Mapping is feasible
 				if(si == nof_sn -1)
 				{
+					//TODO final temporal structure control need to be optimized
 					Vector<Integer> nodes = new Vector<>(queryGraph.getNumNodes());
 					Vector<Integer> mapping = new Vector<>(queryGraph.getNumNodes());
 					TIntHashSet[] edges = new TIntHashSet[queryGraph.getNumNodes()];
@@ -138,7 +141,7 @@ public class RISolverTemporal
 			        }
 					for(int index = 0; index < solution.length;index++) {
 						nodes.add(solution[index]);
-						mapping.add(solution[index]);
+						mapping.add(index);
 					}
 					for(int index = 0; index < solution.length;index++) {
 						nodes.set(mama.map_state_to_node[index], solution[index]);
@@ -147,9 +150,9 @@ public class RISolverTemporal
 						TIntIterator iteratorEdges = outEdgesQuery[mama.map_state_to_node[index]].iterator();
 						while(iteratorEdges.hasNext()) {
 							int element = iteratorEdges.next();
-							int source = nodes.indexOf(solution[mama.map_node_to_state[index]]);
+							int source = nodes.indexOf(solution[index]);
 							int destination = nodes.indexOf(solution[mama.map_node_to_state[element]]);
-							edges[source].add(destination);
+							if (source >=0 && destination >=0) edges[source].add(destination);
 						}
 					}
 					TemporalGraph subtarget = targetGraph.subgraphSelectedEdges(nodes,edges);
@@ -159,9 +162,9 @@ public class RISolverTemporal
 						//All query nodes have been mapped. Update the number of occurrences found
 						numMatches++;
 						//printsolution(solution);
+						if(numMatches%10000000==0)
+							System.out.println("Found "+numMatches+" occurrences...");
 					}
-					if(numMatches%10000000==0)
-						System.out.println("Found "+numMatches+" occurrences...");
 					psi = si;
 				}
 				else
