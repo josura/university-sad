@@ -1,0 +1,1 @@
+final case class MaMaEdge(source:Int,target:Int,time:Int)

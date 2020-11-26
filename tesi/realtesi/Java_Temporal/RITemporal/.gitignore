@@ -1,0 +1,6 @@
+/bin/
+data/
+.settings/
+.classpath
+.project
+src/gnu/
