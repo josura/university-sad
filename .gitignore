@@ -7,3 +7,6 @@ AlgoritmiV2/example.exe
 basi_di_dati/documentation_funebre.pdf
 basi_di_dati/documentation.docx
 *.Rd
+data_mining/progetto_Data/spippolox.R
+*.Rhistory
+*.drawio
