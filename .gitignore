@@ -10,3 +10,7 @@ basi_di_dati/documentation.docx
 data_mining/progetto_Data/spippolox.R
 *.Rhistory
 *.drawio
+*.RData
+*~
+*lyx
+*.png

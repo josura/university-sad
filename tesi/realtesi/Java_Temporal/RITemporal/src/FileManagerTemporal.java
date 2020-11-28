@@ -115,7 +115,7 @@ public class FileManagerTemporal
                 TemporalGraph q=new TemporalGraph(directed,numNodes);
                 while((str=br.readLine())!=null && !str.startsWith("#"))
                 {
-                    String[] split=str.split("[ \t]");
+                    String[] split=str.split("[, \t]");
                     int source=Integer.parseInt(split[0]);
                     int dest=Integer.parseInt(split[1]);
                     int time=Integer.parseInt(split[2]);

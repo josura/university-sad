@@ -46,7 +46,14 @@ public class RItesting
 	    rinetMack.solve(queryMack, 5000);
 	    System.out.println("numero match net " + rinetMack.getNumMatches());
 	   
-        
+	    FileManagerTemporal fmTesttarget  = new FileManagerTemporal();
+	    FileManagerTemporal fmTestquery = new FileManagerTemporal();
+	    TemporalGraph netTest= fmTesttarget.readGraph("data/ia-enron-email-dynamic.edges");
+	    TemporalGraph queryTest= fmTestquery.readGraph("data/query.gdf");
+	    RISolverTemporal rinetTest = new RISolverTemporal(netTest, false);
+	    rinetTest.solve(queryTest, 5000);
+	    System.out.println("numero match net " + rinetTest.getNumMatches());
+	   
         
         System.out.println("finished");
     }

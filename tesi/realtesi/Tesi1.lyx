@@ -253,6 +253,22 @@ ANNO ACCADEMICO 2019/2020
 \end_layout
 
 \begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+ 
+\backslash
+thispagestyle{empty}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 \begin_inset Newpage pagebreak
 \end_inset
 
@@ -294,7 +310,7 @@ Le tecnologie stanno crescendo in modo molto spedito negli ultimi decenni,
 \end_layout
 
 \begin_layout Abstract
-In particolare, i grafi temporali riescono a modellare qualsiasi sistema
+In particolare, i grafi-reti temporali riescono a modellare qualsiasi sistema
  in cui ci siano delle interazioni che avvengono in certi tempi (che siano
  quanti temporali o intervalli) e riprodurre gli stessi comportamenti in
  modo formale, quindi sono di grande importanza per capire come funzionano
@@ -304,6 +320,13 @@ In particolare, i grafi temporali riescono a modellare qualsiasi sistema
  di sistemi complessi come reti neurali (per la modellizzazione di reti
  neurali artificiali sulla forma di studi basati su grafi temporali) e reti
  cerebrali molto più interessanti anche per il futuro della digitalizzazione.
+\end_layout
+
+\begin_layout Abstract
+Nella costruzione di una infrastruttura di base utilizzabile ed adattabile
+ ci saranno molte formalità, dato che mantenere la generalità è molto difficile
+ per incorporare la componente temporale, quindi si utilizzeranno delle
+ tecniche che si concentrano su una struttura locale delle interazioni.
 \end_layout
 
 \begin_layout Abstract
@@ -831,7 +854,7 @@ literal "false"
 
 \begin_layout Standard
 Molte delle definizioni inoltre sono state create per aiutare la definizione
- di graph matching per reti temporali, per esempio la definizione di 
+ di isomorfismo per reti temporali, per esempio la definizione di 
 \begin_inset Flex Emphasize
 status open
 
@@ -841,10 +864,10 @@ propagazione
 
 \end_inset
 
- con la classificazione è stata creata per descrivere la struttura temporale
- di un nodo del grafo, e questa struttura temporale è stata utilizzata per
- descrivere il problema globale di graph matching, che altri autori hanno
- affidato alla definizione di time-respecting-path.
+, con classificazione correlata, è stata creata per descrivere la struttura
+ temporale di un nodo del grafo, e questa struttura temporale è stata utilizzata
+ per descrivere il problema globale di graph matching, che altri autori
+ hanno affidato alla definizione di time-respecting-path.
 \end_layout
 
 \begin_layout Standard
@@ -1241,12 +1264,30 @@ intervallo di contatto
 
 \end_inset
 
-, anche se solitamente il momento in cui avviene la propagazione è comunque
+ e la nomenclatura utilizzata resta la stessa (tranne che per 
+\begin_inset Formula $time$
+\end_inset
+
+ che diventa 
+\begin_inset Formula $interval$
+\end_inset
+
+), anche se solitamente il momento in cui avviene la propagazione è comunque
  un singolo momento, ma dipende comunque dalle esigenze e dalle descrizioni
  singole dei problemi che si stanno tentando di simulare o risolvere.
 \end_layout
 
 \end_deeper
+\begin_layout Definition
+Molto spesso vengono associati dei contatti o intervalli di attivazione
+ anche ai nodi stessi del grafo temporale, anche per simulare in modo più
+ concreto sistemi reali dove vi è questo comportamento, durante questo studio
+ questo concetto non verrà considerato, ma il framework di definizioni resta
+ comunque espandibile, specialmente l'impronta temporale che verrà esposta
+ prossimamente, formata da un insieme di classi espandibile secondo i propri
+ bisogni.
+\end_layout
+
 \begin_layout Standard
 Nonostante si possa definire un grafo temporale senza l'aiuto della definizione
  di contatti, la medesima è molto utile durante molte definizioni formali
@@ -1372,6 +1413,17 @@ Stesso discorso per più intervalli per nodo, che possono essere visti e
 \end_layout
 
 \begin_layout Definition
+Alla coppia ordinata sopra definita è possibile associare altre componenti
+ come per esempio l'insieme di nomi per nodi o per archi, delle funzioni
+ che identifichino matematicamente i singoli nodi o archi e che li associno
+ a identificativi univoci, oltre all'aggiunta di attributi aggiuntivi per
+ ogni componente già definita, cioè per ogni nodo, per ogni arco o per ogni
+ contatto, ma durante questo studio si manterrà una definizione semplice
+ per semplicità e per definire una infrastruttura basilare molto facilmente
+ espandibile
+\end_layout
+
+\begin_layout Definition
 Per il caso di Grafo Temporale ad intervalli vale più o meno lo stesso ragioname
 nto, anche se la complessità aumenta considerevolmente in tecnicismi abbastanza
  poco rilevanti nel caso di contatti, ma che assumono grande importanza
@@ -1388,7 +1440,7 @@ nto, anche se la complessità aumenta considerevolmente in tecnicismi abbastanza
 
 \begin_layout Definition
 (Cammino Time-respecting).
- Si dice cammino time respecting una sequenza di contatti con tempi non-decresce
+ Si dice cammino time-respecting una sequenza di contatti con tempi non-decresce
 nti, più formalmente : 
 \end_layout
 
@@ -1398,10 +1450,10 @@ Data una sequenza di archi
 \end_inset
 
 , questa sequenza forma un time-respecting path se e solo se 
-\begin_inset Formula $r\in[1,n[\subseteq\mathbb{N},e_{r}=(s_{r},d_{r},t_{r})\in E_{G},d_{r}=s_{r+1},t_{r}<t_{r+1}$
+\begin_inset Formula $r\in[1,n[\subseteq\mathbb{N},n=|V_{G}|,e_{r}=(s_{r},d_{r},t_{r})\in E_{G},d_{r}=s_{r+1},t_{r}<t_{r+1}$
 \end_inset
 
-Cioè un cammino time-respecting deve avere delle interazioni tra i vari
+ , cioè un cammino time-respecting deve avere delle interazioni tra i vari
  nodi che rispettino il normale scorrere del tempo.
 \end_layout
 
@@ -1439,7 +1491,7 @@ La definizione è comunque dipendente dalle condizioni singolari di ogni
 
 ).
  Si dice che due nodi siano connessi se esiste un cammino Time-Respecting
- tra i due nodi
+ tra i due nodi.
 \end_layout
 
 \begin_deeper
@@ -1466,7 +1518,7 @@ Si può notare come se due nodi
 \begin_inset Formula $t$
 \end_inset
 
-, quindi non vale la proprietà transitiva
+, quindi non vale la proprietà transitiva.
 \end_layout
 
 \begin_layout Standard
@@ -1508,6 +1560,53 @@ ne di Grafi Temporali che semplificano o arricchiscono il modello da analizzare.
 \end_layout
 
 \begin_layout Definition
+(Sotto-grafo temporale di un grafo 
+\begin_inset Formula $G_{T}$
+\end_inset
+
+).
+ Si dice sotto-grafo temporale di un grafo temporale 
+\begin_inset Formula $G_{t}=(V,E)$
+\end_inset
+
+ la coppia 
+\begin_inset Formula $G_{s}=(V_{s},E_{s})$
+\end_inset
+
+ formata dal sottoinsieme dei nodi 
+\begin_inset Formula $V_{s}\subseteq V$
+\end_inset
+
+ ed il sottoinsieme dei contatti 
+\end_layout
+
+\begin_layout Definition
+\begin_inset Formula $E_{s}\subseteq E|\forall e_{s}\in E_{s},e_{s}.source\in V_{S}\land e_{s}.destination\in V_{S}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset VSpace defskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Questa definizione è indipendente dal tipo di temporalità delle interazioni,
+ quindi è una definizione valida sia per contatti che per intervalli.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Separator plain
+\end_inset
+
+
+\end_layout
+
+\begin_layout Definition
 (Propagazione tra due nodi 
 \begin_inset Formula $(i,j)$
 \end_inset
@@ -1517,19 +1616,29 @@ ne di Grafi Temporali che semplificano o arricchiscono il modello da analizzare.
 \end_inset
 
 ).
- Si dice propagazione 
+ Si dice propagazione (o flusso) 
 \begin_inset Formula $p_{itj}\in E\times E$
 \end_inset
 
- come la coppia ordinata di archi 
-\begin_inset Formula $(e_{r},e_{s}),e_{r},e_{s}\in E|e_{r}.destination=e_{s}.source$
+ la coppia ordinata di archi
+\end_layout
+
+\begin_layout Definition
+\begin_inset Formula $p_{itj}=(e_{r},e_{s}),e_{r},e_{s}\in E|e_{r}.destination=e_{s}.source$
 \end_inset
 
- 
+ .
+\end_layout
+
+\begin_layout Definition
+
 \end_layout
 
 \begin_deeper
 \begin_layout Standard
+\begin_inset VSpace defskip
+\end_inset
+
 Ad una propagazione vengono associati altre caratteristiche come il nodo
  centrale di propagazione (nel caso di 
 \begin_inset Formula $p_{itj}$
@@ -1845,7 +1954,7 @@ Sia
 \begin_inset Formula $b_{i}$
 \end_inset
 
-rispettivamente, con 
+ rispettivamente, con 
 \begin_inset Formula $i\in\mathbb{N}|0<i<inDeg(t)*outDeg(t)$
 \end_inset
 
@@ -2310,12 +2419,39 @@ a quello su contatti, anche perché la definizione del
 \end_layout
 
 \begin_layout Standard
+Si possono aggiungere altre distinzione oppure togliere delle categorie,
+ la definizione di classificazione è molto facilmente espandibile rispetto
+ al problema di base che si sta cercando di risolvere.
+ Per esempio se si volesse considerare il caso di grafo temporale Time-Respectin
+g (cioè quello utilizzato da molti autori 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Mackey2018,paranjape2017motifs,redmond2016subgraph"
+literal "false"
+
+\end_inset
+
+) basta considerare soltanto le propagazioni 
+\begin_inset Formula $\delta$
+\end_inset
+
+-time-respecting e fare i confronti di conseguenza.
+\end_layout
+
+\begin_layout Standard
 L'insieme delle classi possibili (che possono essere stringhe o enumerazioni)
- di una propagazione è il seguente 
+ di una propagazione è il seguente :
+\end_layout
+
+\begin_layout Standard
 \begin_inset Formula $PropType=\{TimeRespecting,NotTimeRespecting\}$
 \end_inset
 
-, eventualmente è possibile associare altre classi come per esempio la classe
+
+\end_layout
+
+\begin_layout Standard
+Eventualmente è possibile associare altre classi come per esempio la classe
  
 \begin_inset Formula $deltaTimeRespecting$
 \end_inset
@@ -2508,9 +2644,9 @@ normalsize
 \end_layout
 
 \begin_layout Standard
-Come già detto si poteva generalizzare tutto considerando il delta per la
- definizione di intervallo, ma la definizione si è lasciata separata per
- far capire che il 
+Come già detto si potrebbe generalizzare il tutto considerando il delta
+ per la definizione di intervallo, ma la definizione è stata definita separatame
+nte per far capire che il 
 \begin_inset Formula $\delta$
 \end_inset
 
@@ -2526,21 +2662,24 @@ Nel caso di grafi con più contatti o intervalli per arco, si può utilizzare
  una delle due definizioni date precedentemente, cambiando l'equazione sopra
  descritta considerando ogni singolo elemento della propagazione, e restituendo
  l'insieme delle classi associate, oppure utilizzando sempre la stessa funzione,
- ma andando a lavorare sui singoli elementi della propagazione.
+ ma andando a lavorare sui singoli elementi della propagazione nel caso
+ in cui una propagazione sia l'insieme di coppie di contatti associati al
+ nodo, aventi stessi sorgenti e destinazioni, ma tempi differenti.
 \end_layout
 
 \begin_layout Definition
-
-\end_layout
-
-\begin_layout Definition
-Il multiinsieme ordinato formato da tutti i tipi di propagazioni di un nodo
- 
+(impronta o carattere temporale).
+ Il multiinsieme ordinato formato da tutti i tipi di propagazioni di un
+ nodo 
 \begin_inset Formula $s$
 \end_inset
 
  è chiamato impronta(o carattere) temporale e viene definito nel seguente
  modo:
+\end_layout
+
+\begin_layout Definition
+
 \end_layout
 
 \begin_layout Definition
@@ -2554,6 +2693,10 @@ Il multiinsieme ordinato formato da tutti i tipi di propagazioni di un nodo
 \begin_inset Formula $\indent impronta_{s}=\{\forall prop_{s}\in P_{s}|prop{}_{s}^{classProp(prop)}\}$
 \end_inset
 
+
+\end_layout
+
+\begin_layout Definition
 
 \end_layout
 
@@ -2589,13 +2732,13 @@ Per più contatti o intervalli per arco la situazione cambia maggiormente,
 \end_layout
 
 \begin_layout Definition
-In questo modo si può svolgere i confronti che si vedranno in futuro e che
- sono essenziali per il calcolo della similarità senza problemi di ambiguità
- associati al primo approccio nel caso di più contatti, dove le propagazioni
- erano tutte indipendenti, dato che l'impronta risultante in quel caso sarebbe
- stata unica, ma i casi non sarebbero stati scindibili l'uno dall'altro,
- e la struttura temporale effettiva poteva portare a falsi positivi nel
- confronto.
+In questo modo si possono svolgere i confronti che si vedranno in futuro
+ e che sono essenziali per il calcolo della similarità senza problemi di
+ ambiguità associati al primo approccio nel caso di più contatti, dove le
+ propagazioni erano tutte indipendenti, dato che l'impronta risultante in
+ quel caso sarebbe stata unica, ma i casi non sarebbero stati scindibili
+ l'uno dall'altro, e la struttura temporale effettiva potrebbe portare a
+ falsi positivi durante il confronto.
 \end_layout
 
 \begin_layout Definition
@@ -2679,16 +2822,21 @@ end{math}
 \begin_inset Formula $t$
 \end_inset
 
- e si segna come 
+ e si segna 
 \begin_inset Formula $ST_{t}$
 \end_inset
 
- come la coppia 
+ la coppia 
 \begin_inset Formula $(P_{t},impronta_{s})$
 \end_inset
 
- la struttura temporale di un nodo formata dal suo insieme di propagazioni
- e dall'impronta stessa
+ , cioè la struttura temporale di un nodo formata dal suo insieme di propagazion
+i e dall'impronta stessa.
+\end_layout
+
+\begin_layout Definition
+Questa definizione resta la stessa nel caso di intervalli e di contatti-interval
+li multipli per arco.
 \end_layout
 
 \begin_deeper
@@ -2696,7 +2844,8 @@ end{math}
 Avere dei contatti o degli intervalli multipli per singolo arco potrebbe
  sembrare una sciocchezza rispetto alla definizione del problema principale,
  ma in realtà nascondono una complessita aggiuntiva immensa, specialmente
- durante la fase di implementazione.
+ durante la fase di implementazione, in particolare durante il calcolo della
+ similarità tra due nodi.
 \end_layout
 
 \begin_layout Standard
@@ -2715,7 +2864,8 @@ Per esempio, per controllare la struttura temporale di un nodo, si dovrebbero
 \end_layout
 
 \begin_layout Definition
-Due nodi hanno la stessa struttura temporale se hanno la stessa impronta.
+(equivalenza di struttura temporale).
+ Due nodi hanno la stessa struttura temporale se hanno la stessa impronta.
  Più formalmente:
 \end_layout
 
@@ -2724,6 +2874,25 @@ Due nodi hanno la stessa struttura temporale se hanno la stessa impronta.
 \end_inset
 
 
+\end_layout
+
+\begin_layout Definition
+In realtà sarebbe più logico separare il concetto di impronta da quello
+ di struttura temporale, che è comunque strettamente legata al grafo a cui
+ appartiene il nodo, e non solo ai tipi di propagazioni che passano dal
+ nodo, costruendo per esempio una funzione biettiva che mappa ogni propagazione
+ del nodo j alle propagazioni del nodo s, ma il risultato sarebbe comunque
+ lo stesso per gli scopi che si vedranno in seguito.
+ 
+\end_layout
+
+\begin_layout Definition
+In particolare sarebbe meglio definire l'equivalenza temporale in base ad
+ una funzione aggiuntiva che mappa le propagazioni del nodo da confrontare
+ alle propagazioni dell'altro nodo, oltre al confronto delle impronte, questo
+ non è stato fatto anche perché è più una formalità che un requisito, dato
+ che l'equivalenza delle impronte fa presumere una stessa struttura temporale
+ dei nodi confrontati.
 \end_layout
 
 \begin_deeper
@@ -2738,6 +2907,12 @@ almente alla quantità di contatti-intervalli multipli per arco nel caso
 \end_layout
 
 \end_deeper
+\begin_layout Definition
+Inoltre, sempre nel caso di contatti-intervalli multipli per arco, non è
+ scontato il confronto delle impronte, quindi bisogna stare particolarmente
+ attenti nella definizione del problema.
+\end_layout
+
 \begin_layout Standard
 \begin_inset Separator plain
 \end_inset
@@ -2809,20 +2984,21 @@ Il confronto tra strutture temporali è una relazione di equivalenza
 \end_layout
 
 \begin_layout Definition
-Due nodi sono simili temporalmente se da un sottoinsieme delle propagazioni
+(similarità di struttura temporale).
+ Due nodi sono simili temporalmente se da un sottoinsieme delle propagazioni
  di un nodo si ricava la stessa impronta dell'altro nodo, formalmente:
 \end_layout
 
 \begin_layout Definition
-\begin_inset Formula $J$
+\begin_inset Formula $S$
 \end_inset
 
  è simile ad 
-\begin_inset Formula $S(J\simeq S)$
+\begin_inset Formula $J$
 \end_inset
 
- 
-\begin_inset Formula $\Longleftrightarrow J\in V,P_{subJ}\subseteq P_{J}\Rightarrow impronta_{subJ}=impronta_{S}$
+ e si scrive 
+\begin_inset Formula $(S\simeq J)\Longleftrightarrow J\in V,P_{subJ}\subseteq P_{J}\Rightarrow impronta_{subJ}=impronta_{S}$
 \end_inset
 
 
@@ -2973,13 +3149,33 @@ Se j ed s hanno la stessa struttura temporale allora sono simili.
 
 \begin_deeper
 \begin_layout Standard
-\begin_inset Separator plain
+Lo stesso discorso non vale al contrario ovviamente, quindi durante i confronti
+ bisogna controllare se un nodo 
+\begin_inset Formula $i$
 \end_inset
 
+ sia similare ad un altro 
+\begin_inset Formula $j$
+\end_inset
 
+, allora anche 
+\begin_inset Formula $j\simeq i$
+\end_inset
+
+.
 \end_layout
 
 \end_deeper
+\begin_layout Corollary
+Molto importante per la parte di pruning per la ricerca di nodi equivalenti
+ in un sottografo è la contronominale di questo corollario, cioè 
+\begin_inset Formula $J\not\simeq S\Rightarrow J\not\equiv S$
+\end_inset
+
+, utile durante la fase di controllo per il mapping tra nodi che si vedrà
+ nella prossima sezione.
+\end_layout
+
 \begin_layout Standard
 \begin_inset Separator plain
 \end_inset
@@ -3019,7 +3215,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Graphics
-	filename /home/josura/Pictures/fluxGraph.png
+	filename /media/josura/E094955094952A54/josura/Pictures/fluxGraph.png
 	scale 35
 
 \end_inset
@@ -3089,8 +3285,8 @@ Figura 1 : Un esempio di grafo di flusso:
 
 \begin_deeper
 \begin_layout Standard
-Una definizione relativamente più complessa a quelle viste precedentemente,
- che aggiunge la componente temporale anche ai nodi, oltre ad aggiungere
+Una definizione relativamente più complessa rispetto a quelle viste precedenteme
+nte, che aggiunge la componente temporale anche ai nodi, oltre ad aggiungere
  dei limiti alla componente temporale.
 \end_layout
 
@@ -3236,7 +3432,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Graphics
-	filename /home/josura/Pictures/fluxWeigthedGraph.png
+	filename /media/josura/E094955094952A54/josura/Pictures/fluxWeigthedGraph.png
 	scale 40
 
 \end_inset
@@ -3683,8 +3879,8 @@ dove N è il numero di nodi nel grafo
 \end_layout
 
 \begin_layout Definition
-(Betweeness Centrality).
- La betweeness centrality è definita secondo la seguente legge:
+(Betweenness Centrality).
+ La betweenness centrality è definita secondo la seguente legge:
 \end_layout
 
 \begin_layout Definition
@@ -3818,6 +4014,14 @@ Euristico ed empirico è principalmente quasi tutto il procedimento di ricerca
 Per grafi con molti contatti il risultato nell'utilizzo di EWER è abbastanza
  soddisfacente, alternato con altri modelli risulta come uno dei “migliori”
  metodi adottati nella creazione dei grafi temporali randomici.
+\end_layout
+
+\begin_layout Standard
+Durante questo studio non verranno trattati nel dettaglio modelli generativi,
+ anche se il bisogno si avrà durante la fase di sperimentazione, ma non
+ si è voluto spendere altro spazio per questo tipo di studi dato che lo
+ studio si concentra su una definizione generale di una infrastruttura flessibil
+e ed utilizzabile nella maggior parte delle applicazioni.
 \end_layout
 
 \begin_layout Subsection
@@ -4184,9 +4388,9 @@ a per la definizione di molti problemi che considerano una struttura locale
 Una possibile ottimizzazione al continuo calcolo delle strutture e delle
  impronte digitali sta nel tenere una struttura interna per ogni nodo che
  cambia all'aggiunta di archi tra nodi (ovviamente correlati di tempo di
- contatto o intervallo di contatto), anche se di fondo questo calcolo di
- struttura è fatto soltanto per il calcolo dei domini di compatibilità che
- si vedranno in seguito.
+ contatto o intervallo di contatto), anche se di fondo questa computazione
+ di struttura è effettuata soltanto per il calcolo dei domini di compatibilità
+ che si vedranno in seguito.
 \end_layout
 
 \begin_layout Subsection
@@ -4246,15 +4450,14 @@ Dati
 \begin_inset Formula $tj$
 \end_inset
 
-
+.
 \end_layout
 
 \begin_deeper
 \begin_layout Standard
-\begin_inset Separator plain
-\end_inset
-
-
+Questa definizione è stata creata per simulare la scomposizione di cammini
+ in singole propagazioni, adattando l'infrastruttura definita precedentemente
+ ad una definizione corretta rispetto al problema comune.
 \end_layout
 
 \end_deeper
@@ -4270,14 +4473,16 @@ Questa definizione fa risalire molti problemi dato che definire l'intervallo
  secondo una specifica propagazione da altre propagazioni dei nodi precedenti
  allo stesso è molto ambiguo, quindi non isolato come problema, che invece
  nasconde una ricorsione interna per il calcolo effettivo di questi intervalli,
- ricorsione dipendente dal cammino che si sta prendento.
+ ricorsione dipendente dal cammino che si sta considerando.
 \end_layout
 
 \begin_layout Standard
 Nell'implementazione questo problema è stato evitato grazie a dei controlli
  aggiuntivi molto simili a quelli dell'impronta, ma che utilizzano il singolo
  arco da mappare (o l'intervallo nel caso di grafo ad intervalli) per vedere
- la fattibilità del mapping effettivo.
+ la fattibilità del mapping effettivo, questo per vedere se la propagazione
+ sia effettivamente correttamente mappata rispetto al cammino utilizzato
+ per arrivare dal nodo di partenza al nodo destinazione.
  
 \end_layout
 
@@ -4356,6 +4561,13 @@ Uno dei problemi più importanti e che preclude l'usufruizione di molte tecniche
  algoritmi che lavorano sui grafi, come per esempio la ricerca di cammini
  ottimali oppure la ricerca di componenti connesse.
  
+\end_layout
+
+\begin_layout Standard
+È possibile aggiungere componenti e vincoli aggiuntivi ad una rete temporale
+ ma bisogna fare particolarmente attenzione alla possibilità di far diventare
+ l'infrastruttura troppo specifica per un singolo problema e poco flessibile
+ per espansioni di codice.
 \end_layout
 
 \begin_layout Standard
@@ -4546,7 +4758,7 @@ literal "false"
  realmente la complessità del problema
 \begin_inset CommandInset citation
 LatexCommand cite
-key "redmond2016subgraph"
+key "redmond2016subgraph,mohajerani2013spontaneous,Mackey2018"
 literal "false"
 
 \end_inset
@@ -4575,6 +4787,26 @@ Le definizioni date precedentemente e prossimamente non sono comunque totalmente
  diverse, anche se tutto il framework descritto è stato costruito per essere
  il più generale possibile, grazie alle definizione di classi delle propagazioni
  che è facilmente espandibile con altre classi.
+\end_layout
+
+\begin_layout Standard
+Verranno accennate altre definizioni e concetti che vengono esposti in altre
+ ricerche 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "sun2019new,redmond2016subgraph,paranjape2017motifs,liu2020temporal,liu2019sampling,mohajerani2013spontaneous,jazayeri2020motif"
+literal "false"
+
+\end_inset
+
+, ed i concetti saranno talvolta implementati nel caso di studio che si
+ prenderà ad esempio, ma non si implementeranno dei controlli globali dato
+ che non tengono conto di gruppi di interazioni indipendenti e quasi sempre
+ sono dipendenti dal problema di base.
+ Nel caso in cui si abbia il bisogno di espandere l'infrastruttura con controlli
+ aggiuntivi che non siano locali, basta aggiungere dei controlli a fine
+ ricerca dell'isomorfismo che controlli se i vincoli stabiliti (che siano
+ mesoscopici o globali) sono rispettati nel sotto-grafo corrispondente.
 \end_layout
 
 \begin_layout Standard
@@ -4614,7 +4846,7 @@ Gli studi sono innumerevoli, le soluzioni spaziano dalle soluzioni semplici
  di visita di tutte le possibili soluzioni alle più complesse, che utilizzano
  le proprietà parallele della computazione della ricerca dei sotto-grafi
  in modo da dividere il problema e ottimizzare l'uso della singola macchina(util
-izzando la GPU integrata o la discreta, il multithreading ed altre tecnologie
+izzando la GPU integrata o la discreta, il multi-threading ed altre tecnologie
  che permettono la parallelizzazione della computazione), oltre all'utilizzo
  di euristiche aggiuntive per la diminuzione dello spazio di ricerca, anche
  perché il problema della ricerca degli isomorfismi in grafi è NP-hard come
@@ -4714,9 +4946,9 @@ L'albero ha una radice fittizia.
 \end_layout
 
 \begin_layout Standard
-Trovare una soluzione per il problema dell'isomorfismo del sottografo è
- intrinsecamente difficile e quindi l'efficienza di qualsiasi software che
- utilizza algoritmi di isomorfismo del sottografo dipende in gran parte
+Trovare una soluzione per il problema di ricerca di isomorfismi in sotto-grafi
+ è intrinsecamente difficile e quindi l'efficienza di qualsiasi software
+ che utilizza algoritmi di ricerca di isomorfismi dipende in gran parte
  da 
 \end_layout
 
@@ -5190,8 +5422,8 @@ Si deve comunque tenere a mente che l'algoritmo implementato considera soltanto
 \begin_layout Standard
 Si sono utilizzati inoltre singoli contatti perché la maggior parte dei
  lavori visti in campo Temporal Graph Matching utilizzavano o singoli contatti,
- oppure stabilivano delle condizioni molto debilitanti che verranno viste
- di seguito in alcune definizioni date da alcuni autori
+ oppure stabilivano condizioni e vincoli molto debilitanti che verranno
+ viste di seguito in alcune definizioni date da alcuni autori
 \begin_inset CommandInset citation
 LatexCommand cite
 key "paranjape2017motifs,redmond2016subgraph,Mackey2018"
@@ -6481,7 +6713,7 @@ Invece le impronte temporali di ogni nodo del grafo temporale target sono
 \end_layout
 
 \begin_layout Example
-Durante la fase di matching si passa dai possibili candidat, si controllano
+Durante la fase di matching si passa dai possibili candidati, si controllano
  gli archi e le impronte, e si continua la mappatura fino a quando si sono
  trovate tutte le occorrenze.
 \end_layout
@@ -6542,8 +6774,11 @@ Definizioni
 \begin_layout Standard
 Per la definizione è stata sfruttata la relazione di equivalenza di struttura
  temporale perché il sotto-grafo non ha tutti gli archi compresi tra i nodi
- del sottografo, in seguito sarà data una definizione con la similarità
- che toglie questo limite.
+ del sotto-grafo, in seguito sarà data una definizione con la similarità
+ che toglie questo limite, ma che deve essere comunque utilizzata solo per
+ la definizione di pruning e regole di fattibilità, dato che la similarità
+ con il nodo del grafo target non garantisce l'equivalenza temporale tra
+ il nodo del grafo query ed il nodo del sotto-grafo target.
 \end_layout
 
 \end_deeper
@@ -6555,8 +6790,8 @@ Per la definizione è stata sfruttata la relazione di equivalenza di struttura
 \end_layout
 
 \begin_layout Definition
-(isomorfismo tra grafi temporali e sotto-grafi temporali).
- Un grafo temporale GT1 è isomorfico ad un sotto-grafo temporale di un grafo
+(isomorfismo tra grafi temporali tramite equivalenza e similarità).
+ Un grafo temporale GT1 è isomorfo ad un sotto-grafo temporale di un grafo
  Temporale GT2 se e solo se esiste una corrispondenza uno a uno tra i nodi
  del sotto-grafo temporale di GT2 e GT1 che preserva l'adiacenza ed il sotto-gra
 fo risultante (come sottoinsieme dei nodi e degli archi del grafo target)
@@ -6573,6 +6808,13 @@ Definendo l'isomorfismo di sotto-grafi tramite similarità è possibile svolgere
 \end_layout
 
 \end_deeper
+\begin_layout Definition
+Bisogna comunque stare attenti ad effettuare i controlli sulla sottostruttura
+ e sulla equivalenza temporale tra i nodi del sotto-grafo (formato da un
+ sottoinsieme di nodi ed un sottoinsieme di contatti) ed il grafo query,
+ come già accennato in precedenza.
+\end_layout
+
 \begin_layout Standard
 \begin_inset Separator plain
 \end_inset
@@ -6596,14 +6838,14 @@ Definendo l'isomorfismo di sotto-grafi tramite similarità è possibile svolgere
 
 \begin_deeper
 \begin_layout Itemize
-\begin_inset Formula $∀u,v∈V:(u,v,t)∈E⇔(ρ(u),ρ(v),t')∈E$
+\begin_inset Formula $\forall u,v∈V:(u,v,t)∈E\iff(ρ(u),ρ(v),t')∈E$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $∀u,v∈V:u\equiv v⇔ρ(u)\equivρ(v)$
+\begin_inset Formula $∀u,v∈V:u\equiv v\iffρ(u)\equivρ(v)$
 \end_inset
 
 
@@ -6698,6 +6940,13 @@ Questa definizione non cambia per grafi temporali.
 
 \end_layout
 
+\begin_layout Standard
+Le definizioni di automorfismo e orbita verranno utilizzate per la ricerca
+ di simmetrie che potrebbero dare luogo a ridondanze durante la fase di
+ matching.
+ 
+\end_layout
+
 \begin_layout Subsection
 Problemi con gli isomorfismi e la definizione di grafo query e target
 \end_layout
@@ -6771,8 +7020,17 @@ Dato che non vi è una definizione univoca e standard del problema di isomorfism
 \begin_layout Standard
 Per la ricerca di pattern temporali il framework definito precedentemente
  potrebbe non essere adatto, dato che trova sotto-grafi con una specifica
- struttura temporale, quindi bisogna sempre adattare la sottostruttura al
- caso unico.
+ struttura temporale, quindi bisogna sempre adattare la sotto-struttura
+ al caso unico.
+\end_layout
+
+\begin_layout Standard
+Nell'implementazione bisogna ricordare che la similarità è utile per fare
+ il pruning dei possibili candidati, ma per il calcolo dell'isomorfismo
+ su sotto-grafo, bisogna considerare la struttura temporale del solo sotto-grafo
+ (senza archi o nodi aggiuntivi), quindi effettuare controlli aggiuntivi
+ durante la fase di matching (nel controllo dell'adiacenza) o alla fine
+ del matching, che possono rallentare di molto la computazione.
 \end_layout
 
 \begin_layout Standard
@@ -7421,11 +7679,58 @@ Per fare il controllo di due strutture temporali e verificare la similarità
 \begin_inset Formula $t$
 \end_inset
 
- , controllando quindi che sia 
-\begin_inset Formula $result=temporalFingerprint(q)\stackrel{component-wise}{\leq}temporalFingerprint(t)|\forall i\in[1,result.size],result[i]=true$
+ , controllando quindi che sia
+\end_layout
+
+\begin_layout Standard
+\begin_inset VSpace defskip
 \end_inset
 
-, altrimenti la condizione non è verificata ed il nodo non è simile
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $result=temporalFingerprint(q)\stackrel{component-wise}{\leq}temporalFingerprint(t)|$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+indent
+\backslash
+indent
+\backslash
+indent
+\backslash
+indent $
+\backslash
+forall i
+\backslash
+in[1,result.size],result[i]=true$
+\end_layout
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset VSpace defskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+altrimenti la condizione non è verificata ed il nodo non è simile
 \end_layout
 
 \begin_layout Standard
@@ -7935,8 +8240,9 @@ end{algorithm}
 \end_layout
 
 \begin_layout Standard
-Ottimizzazione per più contatti o più intervalli per arco, cioè simil-binary
- search e visione della similarità
+Una ottimizzazione possibile sia per singoli contatti che per più contatti
+ o più intervalli per arco è quella di effettuare un binary search sui tempi
+ di contatto per velocizzare il controllo della similarità e del rank.
 \end_layout
 
 \begin_layout Standard
@@ -8448,19 +8754,6 @@ Il nucleo dell'algoritmo di matching è la procedura MATCH ricorsiva.
 \end_layout
 
 \begin_layout Standard
-\begin_inset Flex Alert
-status open
-
-\begin_layout Plain Layout
-da rivedere
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
 Se q è il primo nodo in 
 \begin_inset Formula $μ$
 \end_inset
@@ -8499,6 +8792,19 @@ Se q è il primo nodo in
  query, TemporalRI si interrompe.
  Alla fine del processo di corrispondenza, l'algoritmo restituisce l'elenco
  di tutte le corrispondenze trovate.
+\end_layout
+
+\begin_layout Standard
+Inoltre, dato che l'algoritmo controlla la similarità tra nodi utilizzando
+ il grafo target completo, bisogna controllare alla fine che il grafo query
+ ed il sottografo (senza archi aggiuntivi rispetto a quelli necessari),
+ siano isomorfici, in particolare ogni nodo abbia la stessa struttura temporale
+ (e che non sia più solo similare).
+\end_layout
+
+\begin_layout Standard
+Alla fine si avranno tutte le corrispondenze di sottografi isomorfi al grafo
+ query.
 \end_layout
 
 \begin_layout Subsection
@@ -8736,17 +9042,15 @@ Conclusioni
 Lo sviluppo delle reti temporali è particolarmente difficile perché o ci
  mancano le misure di base e le nozioni necessarie a modellare reti reali,
  o semplifichiamo troppo l’analisi stessa.
- Nel momento in cui avremo stabilito delle convenzioni comuni che siano
- di notevole importanza per abbastanza reti reali potremmo riuscire a simulare
- la realtà in modo più accurato.
- Il problema finale resta comunque quello di minimizzare l’entropia e massimizza
-re l’informazione.
+ 
 \end_layout
 
 \begin_layout Standard
-Nel momento in cui avremo stabilito delle convenzioni comuni che siano di
- notevole importanza per abbastanza reti reali potremmo riuscire a simulare
- la realtà in modo più accurato.
+Nel momento in cui si saranno stabilite delle convenzioni comuni che siano
+ di notevole importanza per abbastanza reti reali e non perdano rilevanza
+ con il cambiare della struttura di base (in poche parole siano indipendenti
+ dal caso e comuni a tutti i problemi che incorporano la componente temporale)
+ si potrà riuscire a simulare la realtà in modo più accurato.
  Il problema finale resta comunque quello di minimizzare l’entropia e massimizza
 re l’informazione.
 \end_layout
@@ -8759,8 +9063,10 @@ Come si è visto più volte, molto spesso il problema delle reti temporali
 
 \begin_layout Standard
 Molto spesso questo viene sfruttato da altri autori per creare le proprie
- soluzioni al problema, quindi creando delle infrastrutture molto selettive
- e poco generali.
+ soluzioni al problema, quindi creando delle soluzioni molto selettive e
+ poco generali, senza definire una vera e propria infrastruttura solida,
+ ma confondendo molto spesso le idee con definizioni troppo semplici per
+ descrivere a pieno la componente temporale.
 \end_layout
 
 \begin_layout Standard
@@ -8822,7 +9128,7 @@ RI
 Si sono visti dei problemi di definizione nella descrizione di grafo temporale
  query e target, dato che la ricerca della struttura è totalmente dipendente
  dal problema che si sta cercando di risolvere, cioè il tipo di struttura
- che si stà cercando.
+ che si sta cercando.
 \end_layout
 
 \begin_layout Standard
@@ -8836,9 +9142,61 @@ mente il problema di base non sia di semplice soluzione ed allo stesso tempo
 \end_layout
 
 \begin_layout Standard
+Una considerazione aggiuntiva deve essere fatta sull'analisi delle performance
+ che si vedranno di seguito e che sono molto importanti in molti studi.
+ In particolare bisogna fare particolare attenzione all'implementazione
+ stessa ed i metodi utilizzati.
+\end_layout
+
+\begin_layout Standard
+Quasi tutti gli algoritmi utilizzano tecnonogie studiate per essere implementate
+ su un singolo core, solo alcuni utilizzano un multithreading che sfrutta
+ una parallelizzazione delle istruzioni, quindi aumentando le prestazioni
+ globali dell'algoritmo, ma nessuno utilizza metodi appositi effettivamente
+ pensati per essere normalmente traslati in una computazione mirata alla
+ parallelizzazione.
+\end_layout
+
+\begin_layout Standard
+Nessuno degli autori menziona tecnologie di computazione distribuita come
+ SPARK, ma questo è abbastanza comprensibile dato che la tecnologia è abbastanza
+ moderna.
+\end_layout
+
+\begin_layout Standard
+Inoltre non viene assolutamente menzionata la possibilità di sfruttare la
+ parallelizzazione della computazione e dei dati in modo da utilizzare al
+ massimo la macchina, per esempio utilizzando OpenCL o CUDA per la scrittura
+ di programmi utilizzabili in GPU o FPGA, che sfrutterebbero la natura parallela
+ di base di molti degli algoritmi utilizzati (che si basa comunque su un
+ concetto di programmazione dinamica, dove soluzioni parziali possono essere
+ utilizzate per arrivare a soluzioni globali).
+\end_layout
+
+\begin_layout Standard
+Tutte le possibili implementazioni presentate sono quindi bloccate dal fatto
+ di essere single thread (nella maggior parte degli algoritmi), oppure multithre
+ad ottimizzato per un singolo task (il caso di SNAP per la ricerca di motif
+ temporali).
+\end_layout
+
+\begin_layout Standard
+In conclusione, questa ricerca e costruzione di una nuova infrastruttura
+ generale facilmente adattabile ai singoli casi è stata fatta su dei principi
+ di similarità locale, in modo da sfruttare i sottoproblemi, e costruire
+ una soluzione globale in modo semplice adattando un algoritmo di non semplice
+ modificabilità.
+ In contrasto, molti autori utilizzano delle definizioni globali che non
+ considerano concetti come indipendenza tra gruppi di interazioni (definendo
+ degli ordinamenti su tutto il grafo), o stabilendo dei vincoli mesoscopici
+ su cammini e sottografi che devono essere rispettati (che dipendono sempre
+ e comunque dal caso che si sta studiando e simulando).
+\end_layout
+
+\begin_layout Standard
 Si vedrà nella prossima sottosezione come l'andamento dell'esecuzione dipenda
  comunque non dalla quantità di nodi in un grafo, ma dagli archi-contatti,
- che definiscono la struttura temporale ed inficiano direttamente la quantità
+ che definiscono la struttura temporale ed influenzano direttamente la quantità
  di nodi da analizzare (che appartengono ai domini di compatibilità) ed
  il controllo utilizzato nella fase di matching.
 \end_layout
@@ -8850,16 +9208,37 @@ Dati sperimentali
 \begin_layout Standard
 Di seguito vengono presentati i grafici che rappresentano le performance
  all'aumentare della dimensione e della struttura di un grafo temporale.
+ 
 \end_layout
 
 \begin_layout Standard
-Per la costruzione dei grafi target si voleva utilizzare un generatore di
- grafi temporali che si basa su due distribuzioni, una per i possibili archi
- (che è una Poisson per il grado di un nodo), ed una dei possibili tempi
- (che in realtà stabilisce delle mode intervallari dove poter far accadere
- i contatti), alla fine si è optato di utilizzare dei grafi temporali già
- disponibili leggermente modificati per facilitare il parsing e la ricerca
- delle occorrenze.
+Si fa presente che questo studio non era incentrato su una implementazione
+ che sfrutta l'hardware in modo ottimale, ma sulla definizione del problema
+ generale e delle strategie per risolverlo, quindi le prestazioni di molti
+ algoritmi generali (Mackey e TemporalRI) sono molto insoddisfacenti, e
+ di fatto non sono stati scelti grafi particolarmente complessi.
+\end_layout
+
+\begin_layout Standard
+Altri algoritmi specifici per singoli problemi dove è stata curata l'implementaz
+ione in modo da sfruttare un minimo di parallelismo (come il temporal-motif
+ di SNAP) saranno ovviamente ottimizzati per i task per cui sono stati creati,
+ e quindi più veloci degli algoritmi presentati.
+\end_layout
+
+\begin_layout Standard
+Per la costruzione dei grafi target l'intenzione era quella di utilizzare
+ un generatore di grafi temporali che si basasse su due distribuzioni, una
+ per i possibili archi (che dovrebbe essere una Poisson per il grado di
+ un nodo, quindi un modello di Barabasi-Albert basato su preferential attachment
+ può andare bene), ed una dei possibili tempi di contatto (che in realtà
+ stabilisce delle mode intervallari dove poter far accadere i contatti,
+ quindi non è semplice da definire), alla fine si è optato per l'utilizzo
+ di grafi temporali già disponibili leggermente modificati (prendendo i
+ sottografi) per facilitare la ricerca delle occorrenze e non aumentare
+ la complessità significativamente, e per la costruzione dei grafi target
+ sintetici si è utilizzato un semplicissimo modello di Barabasi leggermente
+ modificato per aggiungere tempi di contatto ad ogni arco aggiunto.
 \end_layout
 
 \begin_layout Standard
@@ -8877,14 +9256,7 @@ Di seguito verranno considerati solo i casi di grafo query a 32 e 50 nodi,
 \end_layout
 
 \begin_layout Standard
-Non sono stati considerati confronti con altri tool dato che quello che
- fanno nella maggior parte è tutt'altro (anche perché l'unico tool che sembra
- esistere per questo tipo di problemi è SNAP), cioè la ricerca di motif
- con 3 nodi e 3 archi.
-\end_layout
-
-\begin_layout Standard
-Verrà invece considerato un confronto con l'algoritmo utilizzato in 
+Verrà considerato un confronto con l'algoritmo utilizzato in 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "Mackey2018"
@@ -8911,17 +9283,30 @@ https://github.com/pnnl/temporal_subgraph_isomorphism
 \end_inset
 
 ).
- Non sono stati trovati altri algoritmi utilizzabili o modificabili per
- fare un confronto completo, inoltre i risultati non potrebbero essere quelli
- visti ma leggermente diversi (dato che siamo in estate ed il mio computer
- stava fondendo), comunque i rapporti tra i tempi e le performance dovrebbero
- essere le stesse.
+ Non sono stati trovati altri algoritmi utilizzabili, funzionanti o modificabili
+ per fare un confronto completo, inoltre i risultati non potrebbero essere
+ quelli visti ma leggermente diversi (dato che il periodo degli esperimenti
+ era intorno ad Agosto e la temperatura impediva il normale funzionamento
+ dei dispositivi disponibili), comunque i rapporti tra i tempi e le performance
+ dovrebbero essere gli stessi.
+\end_layout
+
+\begin_layout Standard
+In seguito è stato fatto un confronto di SNAP e la sua implementazione di
+ ricerca di motivi temporali e l'algoritmo TemporalRI, utilizzando le query
+ definite che vengono utilizzate in SNAP (cioè 2-3 nodi e 3 archi), nei
+ limiti dei singoli contatti possibili nella implementazione fatta per TemporalR
+I.
 \end_layout
 
 \begin_layout Standard
 Vengono presentati singole misure per variabile perché durante alcune prove
  il tempo di esecuzione non sembrava fluttuare particolarmente (anche perchè
- il procedimento è poco variabile in tutti e due gli algoritmi).
+ il procedimento è poco variabile in tutti gli algoritmi).
+\end_layout
+
+\begin_layout Standard
+Durante i test sperimentali è stato utilizzato un Acer Nitro 5 AN515.
 \end_layout
 
 \begin_layout Standard
@@ -8934,10 +9319,37 @@ Vengono presentati singole misure per variabile perché durante alcune prove
 \begin_layout Standard
 I grafi target presi sono relativamente pochi anche perché il tempo di esecuzion
 e non variava particolarmente con alcune variabili (i nodi del grafo target),
- mentre con gli archi di un grafo sembra seguire un andamento crescente
- (con una correlazione abbastanza tendente allo 0 perché comunque dipende
- dalla struttura di tutto il grafo e da come sono distribuiti gli archi,
- oltre all'andamento della struttura temporale).
+ mentre al variare degli archi nel grafo target sembra seguire un andamento
+ crescente (con una correlazione abbastanza tendente allo 0 perché comunque
+ dipende dalla struttura di tutto il grafo e da come sono distribuiti gli
+ archi, oltre all'andamento della struttura temporale).
+\end_layout
+
+\begin_layout Standard
+Inoltre i tempi di esecuzione per certi tipi di grafi query e target erano
+ abbastanza lunghi da mandare in crash il mio sistema.
+\end_layout
+
+\begin_layout Standard
+I seguenti grafici presentano i tempi di esecuzione preliminari generali
+ dell'algoritmo sulla ricerca di grafi temporali query definiti su grafi
+ temporali target reali.
+\end_layout
+
+\begin_layout Standard
+I dataset utilizzati per queste prove non sono gli stessi della tabella
+ 1, ma sono stati persi durante le prove dato che questi esperimenti erano
+ tra i primi per il controllo di performance.
+\end_layout
+
+\begin_layout Standard
+Questi grafi sono stati lasciati perché si può vedere come i tempi di esecuzione
+ siano relativamente bassi, questo perché i grafi utilizzati venivano da
+ reti che non erano propriamente temporali ma erano dati per sistemi di
+ raccomandazione con un tipo di componente temporale che non convinceva,
+ e dato che i tempi ricadevano in un intervallo temporale minimo , i domini
+ di compatibilità risultanti erano molto piccoli e la computazione del matching
+ vero e proprio ne risentiva pesantemente.
 \end_layout
 
 \begin_layout Standard
@@ -9154,6 +9566,15 @@ Nel caso della correlazione con l'aumento di archi in un grafo, sembra invece
 \end_layout
 
 \begin_layout Standard
+Una considerazione aggiuntiva può essere fatta sul fatto che i grafi query
+ utilizzati siano stati creati ad-hoc, questo perché durante altri esperimenti
+ con grafi query estratti da altri grafi temporali, i tempi di esecuzione
+ aumentavano o diminuivano senza un pattern stabile, anche perché, nella
+ maggior parte dei casi, questi dipendono pesantemente dalla struttura temporale
+ sia del grafo query che del grafo target.
+\end_layout
+
+\begin_layout Standard
 \begin_inset Newpage pagebreak
 \end_inset
 
@@ -9170,7 +9591,38 @@ literal "false"
 
 \end_inset
 
-:
+ in grafi sintetici e reali, verso la fine viene presentato inoltre un confronto
+ con SNAP di TemporalRI con grafi temporali reali:
+\end_layout
+
+\begin_layout Subsubsection
+Performance su grafi sintetici
+\end_layout
+
+\begin_layout Standard
+I grafi sintetici utilizzati sono, nel caso dei grafi query, sotto-grafi
+ di altre reti temporali (100 sotto-grafi della rete 
+\begin_inset Flex Emphasize
+status open
+
+\begin_layout Plain Layout
+fb-forum
+\end_layout
+
+\end_inset
+
+, con nodi da 3 a 103), e nel caso di studio della variazione delle performance
+ in base alla dimensione del grafo target, sono grafi temporali generati
+ con un basilare modello di Barabasi (cioè sfruttando il principio del preferent
+ial attachment) modificato per l'aggiunta della componente temporale, che
+ viene stabilità in base a quando il nodo entra nella rete (per simulare
+ l'entrata di un agente e l'interazione tra altri agenti in un certo tempo),
+ il grado medio è all'incirca 3.
+\end_layout
+
+\begin_layout Standard
+Di seguito viene presentato il confronto in base al numero di nodi e contatti
+ nella query (e non nel grafo target), sempre di TemporalRI con Mackey:
 \end_layout
 
 \begin_layout Standard
@@ -9201,7 +9653,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename confrontoaltronodi1.svg
+	filename syntheticQueryRInodes.svg
 	scale 28
 
 \end_inset
@@ -9215,7 +9667,7 @@ status open
 \family sans
 \size small
 \color red
-Query di 50 nodi
+Query incremementali secondo il numero di nodi
 \end_layout
 
 \end_inset
@@ -9245,7 +9697,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename confrontoaltronodi2.svg
+	filename syntheticQueryRIedges.svg
 	scale 28
 
 \end_inset
@@ -9259,7 +9711,7 @@ status open
 \family sans
 \size small
 \color red
-Query di 32 nodi
+Query incrementali secondo il numero di archi
 \end_layout
 
 \end_inset
@@ -9273,10 +9725,358 @@ Query di 32 nodi
 \end_layout
 
 \begin_layout Standard
-Come già specificato, il numero di nodi non sembrà influenzare direttamente
- il tempo di esecuzione, e nonostante l'algoritmo confrontato con RI sia
- abbastanza poco performante, non sembra essere particolarmente attaccato
- da grafi abbastanza grandi.
+Come si può vedere, l'algoritmo di Mackey risulta migliore in quasi tutti
+ i casi dato che mantiene tempi di esecuzione costanti indipendentemente
+ dal numero di nodi o archi del grafo query, dove invece TemporalRI sembra
+ assumere un comportamento lineare.
+\end_layout
+
+\begin_layout Standard
+Viene presentato inoltre un confronto dei tempi di esecuzione della ricerca
+ di isomorfismi di un grafo definito (con 10 nodi) in grafi target con nodi
+ o archi variabili (secondo quanto esposto precedentemente), i risultati
+ di seguito:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement h
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename syntheticTargetRINodes.svg
+	scale 28
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\family sans
+\size small
+\color red
+Target incremementali secondo il numero di nodi
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename syntheticTargetRIedges.svg
+	scale 28
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\family sans
+\size small
+\color red
+Target incrementali secondo il numero di archi
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Nonostante TemporalRI sembra prevalere nelle performance, nella realtà i
+ due algoritmi hanno tempi molto simili, e mediamente ci mettono lo stesso
+ tempo per la ricerca di isomorfismi-motif.
+ 
+\end_layout
+
+\begin_layout Standard
+Da questo risultato si può vedere che l'approccio edge-driven adottato da
+ molti autori non è sempre la scelta migliore dato che, oltre al fatto che
+ si possano trovare solo certi sotto-grafi senza contare certe occorrenze
+ dipendenti dalla struttura definita dal problema (che non è detto sia sempre
+ la solita con cammini time-respecting), si deve far fronte al numero crescente
+ di archi da confrontare, cosa che viene tamponata dall'approccio utilizzato
+ in RI con il controllo preventivo delle impronte e durante la fase di matching
+ per togliere i candidati che non rispettino certe regole.
+\end_layout
+
+\begin_layout Subsubsection
+Performance su grafi reali
+\end_layout
+
+\begin_layout Standard
+Durante questa sotto-sezione sono stati utilizzati grafi temporali reali
+ trovabili in 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+http://networkrepository.com/temporal-networks.php
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+I dataset utilizzati sono i seguenti
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{table}[h!] 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+centering
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{tabular}{|l|l|l|l|l|} 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+Graph & |V| & |E|  & $d_{max}$ & $d_{avg}$ 
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+SFHH-conf-sensor   & 403 & 70K  & 2K      & 348     
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+ca-cit-HepPh       & 28K & 5M   & 11K     & 327     
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+copresence-InVS15  & 219 & 1M   & 40K     & 12K     
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+edit-enwiki-books  & 8K  & 162K & 11K     & 38      
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+email-dnc          & 2K  & 37K  & 6K      & 40      
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+fb-forum           & 899 & 34K  & 2K      & 74      
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+fb-wosn-friends    & 64K & 1M   & 2K      & 39      
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+ia-contacts-dublin & 11K & 416K & 616     & 75      
+\backslash
+
+\backslash
+ 
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{tabular} 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+caption{dataset utilizzati} 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+label{table:data}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{table}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Come si vedrà dai prossimi dati sperimentali, il numero di nodi non sembrerà
+ influenzare direttamente il tempo di esecuzione, e nonostante l'algoritmo
+ confrontato con RI sia abbastanza poco performante per certi tipi di grafi
+ temporali, sembra essere più veloce rispetto a TemporalRI per grafi temporali
+ piccoli e con pochi contatti, e molto spesso i due algoritmi hanno gli
+ stessi tempi di esecuzione, considerando dei limiti di possibili archi.
+\end_layout
+
+\begin_layout Standard
+Durante gli esperimenti TemporalRI risulterà migliore nel caso in cui gli
+ archi di notevole quantità, dato che il confronto non è edge-driven come
+ l'algoritmo di Mackey, oltre a dare il giusto risultato in base alla definizion
+e data durante questo studio, questi risultati non saranno comunque molto
+ affidabili, dato che i grafi utilizzati come target sono estremamente variabili
+, e molto spesso i contatti che vengono forniti avvengono tutti in un intervallo
+ molto piccolo, quindi TemporalRI effettua un calcolo dei compatibility
+ domains che distrugge completamente la struttura utilizzata da Mackey per
+ la ricerca di motif, ed allo stesso tempo l'algoritmo di Mackey setaccia
+ i contatti in modo da effettuare la ricerca in modo performante.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Viene effettuato un boxplot in base al numero di nodi di più query, in modo
+ da analizzare i comportamenti dei due algoritmi su più dataset (alcuni
+ di quelli specificati precedentemente) ed al variare dei grafi query:
 \end_layout
 
 \begin_layout Standard
@@ -9309,8 +10109,8 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Graphics
-	filename confrontoaltroarchi1.svg
-	scale 30
+	filename edit-enwiki-Box.svg
+	scale 40
 
 \end_inset
 
@@ -9320,10 +10120,9 @@ status open
 \begin_layout Plain Layout
 \align center
 
-\family sans
-\size small
-\color red
-Query di 50 nodi
+\shape italic
+\size tiny
+Boxplot 1:dataset edit-enwikibooks
 \end_layout
 
 \end_inset
@@ -9354,8 +10153,8 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Graphics
-	filename confrontoaltroarchi2.svg
-	scale 30
+	filename fb-forum-Box.svg
+	scale 40
 
 \end_inset
 
@@ -9365,10 +10164,53 @@ status open
 \begin_layout Plain Layout
 \align center
 
-\family sans
-\size small
-\color red
-Query di 32 nodi
+\shape italic
+\size tiny
+Boxplot 2:dataset fb-forum
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename SFHH-Box.svg
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\shape italic
+\size tiny
+Boxplot 3:dataset SFHH-conf-sensor
 \end_layout
 
 \end_inset
@@ -9382,10 +10224,431 @@ Query di 32 nodi
 \end_layout
 
 \begin_layout Standard
-Come si può facilmente vedere, TemporalRI è migliore in prestazioni, oltre
- a dare il giusto risultato in base alla definizione data durante questo
- studio.
- 
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename email-box.svg
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\shape italic
+\size tiny
+Boxplot 4:dataset email-dnc
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename ia-contacts-Box.svg
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\shape italic
+\size tiny
+Boxplot 5:dataset ia-contacts-dublin
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+L'algoritmo di Mackey sembra essere più veloce nella maggior parte degli
+ esperimenti, ma talvolta assume dei comportamenti inaspettati con nessun
+ criterio apparente (per esempio aumentando il numero di nodi, l'algoritmo
+ diventa immensamente più lento).
+\end_layout
+
+\begin_layout Standard
+Questi risultati sono inoltre attuati su dei grafi abbastanza piccoli, di
+ fatto tutti e due gli algoritmi finiscono la computazione entro pochi secondi.
+ Non è stato possibile utilizzare dataset più grandi dato che l'algoritmo
+ di Mackey ha una gestione della memoria abbastanza naive, e per dimensioni
+ di grafi relativamente grandi (sopra i 300000 archi), l'algoritmo occupa
+ tutta la memoria ed infine si suicida.
+\end_layout
+
+\begin_layout Standard
+Vengono presentati i boxplot dei grafi reali dove l'algoritmo di Mackey
+ andava out of memory:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename NonOOMboxCa-cit-HepPh.svg
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\shape italic
+\size tiny
+Boxplot 6:dataset Ca-cit-HepPh
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename NonOOMboxFb-wosn-friend.svg
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\shape italic
+\size tiny
+Boxplot 7:dataset fb-wosn-friend
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename NonOOMboxSoc-epinions.svg
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\shape italic
+\size tiny
+Boxplot 8:dataset soc-epinions-trust-dir
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename NonOOMboxia-enron-email.svg
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+
+\shape italic
+\size tiny
+Boxplot 9:dataset ia-enron-email-dynamic
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Di seguito il confronto tra i tempi di esecuzione di SNAP per ricerca di
+ motif temporali (chiamato Temporal-motif nel grafico) e TemporalRI, in
+ cui si considerano tutti i tempi di esecuzione di tutte le query per singolo
+ grafo target (rappresentato dal numero di nodi o contatti appartenenti
+ al grafo temporale) dato che SNAP non permette di sapere i singoli tempi
+ di esecuzione per ogni grafo query, non è stato confrontato l'algoritmo
+ di Mackey dato che per grafi di notevole grandezza non sembra funzionare
+ (con il mio hardware), i dataset utilizzati sono sempre quelli definiti
+ nella Tabella 1.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename SNAPnodiconf.svg
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename SNAParchiconf.svg
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Ovviamente, l'algoritmo per la ricerca di temporal motif di SNAP è più veloce
+ per qualsiasi input, dato che è stato creato per il singolo task di trovare
+ tutte le occorrenze di 2-3 nodi e 3 archi, oltre a sfruttare OpenMP per
+ l'utilizzo parallelo durante la computazione, e multithreading.
+\end_layout
+
+\begin_layout Standard
+Alla fine si può vedere come un confronto edge-driven ottimizzato che utilizza
+ anche strategie di pruning di archi e parallelismo dei controlli sia migliore
+ di un normale algoritmo di ricerca basato su struttura che non utilizza
+ parallelismo dati e task, quindi non ottimizzato per utilizzare componenti
+ molto utili per diminuire il tempo di esecuzione.
+\end_layout
+
+\begin_layout Standard
+Bisogna ricordare comunque che gli algoritmi presentati non danno gli stessi
+ risultati (quantità di match-motif) anche perché utilizzano definizioni
+ differenti di isomorfismo o motif oltre ad avere tempi abbastanza fluttuanti
+ rispetto alla struttura temporale di base sia delle reti temporali query
+ utilizzate, sia dei target dove ricercare gli isomorfismi.
 \end_layout
 
 \begin_layout Standard
@@ -9406,9 +10669,24 @@ Per il futuro vi sono la definizione chiara di una base di formalità per
 \end_layout
 
 \begin_layout Standard
+Dato che lo studio non era incentrato sulle performance, non si è scritto
+ l'algoritmo in modo ottimale per aumentarne le prestazioni, quindi nel
+ futuro si può fare il controllo della struttura temporale e l'equivalenza
+ direttamente durante la fase di matching e controllo, dato che nella data
+ in cui questa ricerca è stata scritta, il controllo di struttura temporale
+ viene fatto alla fine del confronto sul sottografo per vedere l'equivalenza.
+\end_layout
+
+\begin_layout Standard
 Inoltre il codice è stato scritto in scala anche per favorire una possibile
  implementazione con SPARK e la trasposizione nel mondo dello stream processing
  o della computazione distribuita di grafi con librerie come Neo4j o GraphX.
+\end_layout
+
+\begin_layout Standard
+Possibile implementazione che sfrutta la natura dinamica e parallela del
+ problema utilizzando tecnologie di GPGPU come OpenCL o CUDA, aumentando
+ il throughput generale dell'algoritmo.
 \end_layout
 
 \begin_layout Standard

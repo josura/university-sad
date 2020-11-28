@@ -1,0 +1,192 @@
+#q1
+directed
+4
+1 0 1
+2 0 4
+0 1 2
+#q2 
+directed
+4
+1 0 4
+2 0 1
+0 1 2
+#q3
+directed
+4
+1 0 1
+2 0 2
+2 1 4
+#q4
+directed
+4
+1 0 1
+2 0 2
+1 2 4
+#q5 
+directed
+4
+0 1 1
+2 0 2
+2 1 4
+#q6 
+directed
+4
+0 1 1
+2 0 2
+1 2 4
+#q7
+directed
+4
+1 0 1
+2 0 2
+0 1 4
+#q8 
+directed
+4
+1 0 4
+2 0 2
+0 1 1
+#q9
+directed
+4
+0 1 1
+2 0 2
+2 1 4
+#q10 
+directed
+4
+0 1 1
+2 0 2
+1 2 4
+#q11 
+directed
+4
+0 1 1
+2 0 2
+2 1 4
+#q12
+directed
+4
+0 1 1
+2 0 2
+1 2 4
+#q13
+directed
+4
+1 0 1
+2 0 2
+0 1 4
+#q14 
+directed
+4
+1 0 4
+2 0 2
+0 1 1
+#q15
+directed
+4
+0 1 1
+2 0 2
+2 1 4
+#q16 
+directed
+4
+0 1 1
+2 0 2
+1 2 4
+#q17
+directed
+4
+1 0 1
+2 0 4
+0 1 2
+#q18
+directed
+4
+1 0 4
+2 0 1
+0 1 2
+#q19
+directed
+4
+1 0 1
+2 0 2
+2 1 4
+#q20
+directed
+4
+1 0 1
+2 0 2
+1 2 4
+#q21 
+directed
+4
+0 1 1
+2 0 2
+2 1 4
+#q22
+directed
+4
+0 1 1
+2 0 2
+1 2 4
+#q23
+directed
+4
+1 0 1
+2 0 2
+0 1 4
+#q24
+directed
+4
+1 0 4
+2 0 2
+0 1 1
+#q25
+directed
+4
+0 1 1
+2 0 2
+2 1 4
+#q26 
+directed
+4
+0 1 1
+2 0 2
+1 2 4
+#q27 
+directed
+4
+0 1 1
+2 0 2
+2 1 4
+#q28
+directed
+4
+0 1 1
+2 0 2
+1 2 4
+#q29
+directed
+4
+1 0 1
+2 0 2
+0 1 4
+#q30 
+directed
+4
+1 0 4
+2 0 2
+0 1 1
+#q31
+directed
+4
+0 1 1
+2 0 2
+2 1 4
+#q32
+directed
+4
+0 1 1
+2 0 2
+1 2 4
