@@ -1,0 +1,24 @@
+- name: testing and set openstack
+  hosts: openstackMachines
+  become: yes
+  tasks:
+   - name: Ping my hosts
+     ansible.builtin.ping:
+   - name: control and install openstack
+     ansible.builtin.debug:
+       msg: control openstack
+   - name: ensure sudo is installed
+     apt:
+       name: sudo
+   - name: Run the equivalent of "apt-get update" as a separate step
+     apt:
+       update_cache: yes
+   - name: install dependencies python
+     apt:
+       pkg: python-dev
+   - name: install dependencies pip
+     apt:
+       pkg: pip
+   - name: Install openstack python package
+     ansible.builtin.pip:
+       name: python-openstackclient
