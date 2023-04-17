@@ -28,54 +28,33 @@
       become_method: sudo
       apt:
         pkg: gnupg
-    - name: Download apt key
-      get_url:
-        url: https://download.docker.com/linux/debian/gpg
-        dest: /tmp # or /etc/pki/rpm-gpg depending on the infrastructure
-    - name: Add a key from a file
+    - name: install keyrings
       become: yes
       become_method: sudo
-      ansible.builtin.apt_key:
-        file: /tmp/gpg
-        state: present
-    #- name: Add docker official GPG key
-     # become: yes
-     # become_method: sudo
-     # shell: sudo install -m 0755 -d /etc/apt/keyrings &&  curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg && sudo chmod a+r /etc/apt/keyrings/docker.gpg
-    #- name: Set up the repository
-     # become: yes
-     # become_method: sudo
-     # shell: echo "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null  
-  #  - name: download dependency to get add-apt-repository
-  #    become: yes
-  #    become_method: sudo
-  #    apt:
-  #      pkg: software-properties-common
-  #  - name: add repository
-  #    become: yes
-  #    become_method: sudo	
-  #    shell: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      shell: sudo install -m 0755 -d /etc/apt/keyrings
+    - name: Curl docker gpg key and dearmor it
+      become: yes
+      become_method: sudo
+      shell: curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor --batch --yes -o /etc/apt/keyrings/docker.gpg
+
+    - name: change file permission
+      become: yes
+      become_method: sudo
+      shell: sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+    - name: Set up the repository
+      become: yes
+      become_method: sudo
+      shell: echo "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null  
     - name: apt-get update to get docker registry
       become: yes
       become_method: sudo
       apt:
         update_cache: yes
-    - name: Add the Kubernetes gpg key
-      become: yes
-      become_method: sudo
-      shell: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-    - name: Add the Kubernetes Registry
-      become: yes
-      become_method: sudo
-      shell: echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
-    - name: Update packages
-      become: yes
-      become_method: sudo
-      command: apt-get update
     - name: install docker, kubelet, kubeadm and kubectl packages
       become: yes
       become_method: sudo
-      command: apt-get install -y docker-ce=18.06.1~ce~3-0~ubuntu kubelet=1.15.7-00 kubeadm=1.15.7-00 kubectl=1.15.7-00
+      command: apt-get install -y docker-ce kubelet kubeadm kubectl
     - name: hold docker, kubelet, kubeadm and kubectl to current versions
       become: yes
       become_method: sudo
