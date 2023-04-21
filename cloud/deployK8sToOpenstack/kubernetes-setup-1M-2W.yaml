@@ -1,7 +1,7 @@
 ---
 # apply these steps on Manager as well as workers
 - hosts: allservers
-  tasks: 
+  tasks:
     - name: ensure sudo is installed
       apt:
        name: sudo
@@ -17,12 +17,12 @@
       become: yes
       become_method: sudo
       apt:
-        pkg: ca-certificates 
+        pkg: ca-certificates
     - name: apt install curl
       become: yes
       become_method: sudo
       apt:
-        pkg: curl 
+        pkg: curl
     - name: apt install gnupg
       become: yes
       become_method: sudo
@@ -45,8 +45,25 @@
     - name: Set up the repository
       become: yes
       become_method: sudo
-      shell: echo "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null  
+      shell: echo "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     - name: apt-get update to get docker registry
+      become: yes
+      become_method: sudo
+      apt:
+        update_cache: yes
+    - name: apt-get packages for kubernetes repository
+      become: yes
+      become_method: sudo
+      shell: sudo apt-get install -y apt-transport-https ca-certificates curl
+    - name: Download the Google Cloud public signing key
+      become: yes
+      become_method: sudo
+      shell: sudo curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    - name: Add the Kubernetes apt repository
+      become: yes
+      become_method: sudo
+      shell: echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list 
+    - name: apt-get update to get kubernetes registry
       become: yes
       become_method: sudo
       apt:
@@ -54,7 +71,7 @@
     - name: install docker, kubelet, kubeadm and kubectl packages
       become: yes
       become_method: sudo
-      command: apt-get install -y docker-ce kubelet kubeadm kubectl
+      command: apt-get install -y --allow-change-held-packages docker-ce kubelet kubeadm kubectl
     - name: hold docker, kubelet, kubeadm and kubectl to current versions
       become: yes
       become_method: sudo
