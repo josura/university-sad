@@ -76,14 +76,30 @@
       become: yes
       become_method: sudo
       command: apt-mark hold docker-ce kubelet kubeadm kubectl
-    - name: Add the iptables rule to sysctl.conf
+  #  - name: Add the iptables rule to sysctl.conf
+  #    become: yes
+  #    become_method: sudo
+  #    shell: echo "net.bridge.bridge-nf-call-iptables=1" | sudo tee -a /etc/sysctl.conf
+  #  - name: Enable iptables immediately
+  #    become: yes
+  #    become_method: sudo
+  #    command: sysctl -p
+    - name: create k8s.conf for iptables
       become: yes
       become_method: sudo
-      shell: echo "net.bridge.bridge-nf-call-iptables=1" | sudo tee -a /etc/sysctl.conf
-    - name: Enable iptables immediately
+      command: printf "overlay\nbr_netfilter\n" | sudo tee /etc/modules-load.d/k8s.conf
+    - name: modprobe overlay and br_netfilter
       become: yes
       become_method: sudo
-      command: sysctl -p
+      command: modprobe -a overlay br_netfilter
+    - name: create k8s.conf for iptables
+      become: yes
+      become_method: sudo
+      command: printf "net.bridge.bridge-nf-call-iptables  = 1\nnet.bridge.bridge-nf-call-ip6tables = 1\nnet.ipv4.ip_forward                 = 1\n" | sudo tee /etc/sysctl.d/k8s.conf
+    - name: apply sysctl params
+      become: yes
+      become_method: sudo
+      command: sysctl --system
 # apply the following steps on Manager only
 - hosts: Masters
   tasks: 
