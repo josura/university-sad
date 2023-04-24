@@ -108,6 +108,68 @@
         #    become: yes
         #    become_method: sudo
         #    command: (crontab -l 2>/dev/null; echo "@reboot /sbin/swapoff -a") | crontab - || true
+- name: add libseccomp repository             
+      become: yes
+      become_method: sudo
+      command: echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
+    - name: apt-get update to get libseccomp registry
+      become: yes
+      become_method: sudo
+      apt:
+        update_cache: yes
+    - name: install libseccomp2             
+      become: yes
+      become_method: sudo
+      command: apt install -y libseccomp2 
+    - name: add libcontainer repository             
+      become: yes
+      become_method: sudo
+      shell: printf "deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/ /\n" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+    - name: add cri-o repository             
+      become: yes
+      become_method: sudo
+      shell: printf "deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.24/Debian_11/ /" | sudo tee  /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:1.24.list
+    - name: create directory for keyrings if not available
+      become: yes
+      become_method: sudo
+      command: mkdir -p /usr/share/keyrings
+        # - name: add libcontainers key
+        #   become: yes
+        #   become_method: sudo
+        #   apt_key:
+        #     url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/Release.key
+          # - name: get libcontainers crio key
+          #   become: yes
+          #   become_method: sudo
+          #   apt_key:
+          #     url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.24/Debian_11/Release.key
+          # - name: get keys from repository
+          #   become: yes
+          #   become_method: sudo
+          #   command: curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/debian-installer/Release.gpg > /tmp/libcontainerKey
+          # - name: dearmor key
+          #   become: yes
+          #   become_method: sudo
+          #   command: gpg /tmp/libcontainerKey --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
+    - name: Install libcontainer key
+      become: yes
+      get_url:
+        url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/debian-installer/Release.gpg
+        dest: /etc/apt/trusted.gpg.d/libcontainer.asc
+    - name: Install libcontainer-crio key
+      become: yes
+      get_url:
+        url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.24/Debian_11/Release.gpg
+        dest: /etc/apt/trusted.gpg.d/libcontainer-crio.asc
+    - name: apt-get update to get crio registry
+      become: yes
+      become_method: sudo
+      apt:
+        update_cache: yes
+    - name: install cri-o and cri-o-runc
+      become: yes
+      become_method: sudo
+      command: apt-get install cri-o cri-o-runc
 # apply the following steps on Manager only
 - hosts: Masters
   tasks: 
