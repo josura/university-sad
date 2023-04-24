@@ -151,16 +151,24 @@
           #   become: yes
           #   become_method: sudo
           #   command: gpg /tmp/libcontainerKey --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
-    - name: Install libcontainer key
+  #  - name: Install libcontainer key
+  #    become: yes
+  #    get_url:
+  #      url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/debian-installer/Release.gpg
+  #      dest: /etc/apt/trusted.gpg.d/libcontainer.asc
+  #  - name: Install libcontainer-crio key
+  #    become: yes
+  #    get_url:
+  #      url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.24/Debian_11/Release.gpg
+  #      dest: /etc/apt/trusted.gpg.d/libcontainer-crio.asc
+    - name: Curl libcontainer gpg key and dearmor it
       become: yes
-      get_url:
-        url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/debian-installer/Release.gpg
-        dest: /etc/apt/trusted.gpg.d/libcontainer.asc
-    - name: Install libcontainer-crio key
+      become_method: sudo
+      shell: curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/Release.key | sudo gpg --dearmor --batch --yes -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
+    - name: Curl libcontainer-crio gpg key and dearmor it
       become: yes
-      get_url:
-        url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.24/Debian_11/Release.gpg
-        dest: /etc/apt/trusted.gpg.d/libcontainer-crio.asc
+      become_method: sudo
+      shell: curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.24/Debian_11/Release.key | sudo gpg --dearmor --batch --yes -o /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg
     - name: apt-get update to get crio registry
       become: yes
       become_method: sudo
