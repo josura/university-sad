@@ -177,7 +177,21 @@
     - name: install cri-o and cri-o-runc
       become: yes
       become_method: sudo
-      command: apt-get install cri-o cri-o-runc
+      command: apt-get install cri-o cri-o-runc cri-tools
+    - name: Just force systemd to reread configs (2.4 and above)
+      become: yes
+      ansible.builtin.systemd:
+        daemon_reload: true
+    - name: Enable crio
+      become: yes
+      ansible.builtin.systemd:
+        name: crio
+        state: started
+        enabled: true
+    # add node to kubelet extra args
+    - name: write to default/kubelet file
+      become: yes
+      shell: printf "KUBELET_EXTRA_ARGS=--node-ip=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')" > /etc/default/kubelet
 # apply the following steps on Manager only
 - hosts: Masters
   tasks: 
