@@ -76,14 +76,6 @@
       become: yes
       become_method: sudo
       command: apt-mark hold docker-ce kubelet kubeadm kubectl
-  #  - name: Add the iptables rule to sysctl.conf
-  #    become: yes
-  #    become_method: sudo
-  #    shell: echo "net.bridge.bridge-nf-call-iptables=1" | sudo tee -a /etc/sysctl.conf
-  #  - name: Enable iptables immediately
-  #    become: yes
-  #    become_method: sudo
-  #    command: sysctl -p
     - name: create k8s.conf for iptables
       become: yes
       become_method: sudo
@@ -104,11 +96,7 @@
       become: yes
       become_method: sudo
       command: swapoff -a
-        #  - name: disable swap 2             
-        #    become: yes
-        #    become_method: sudo
-        #    command: (crontab -l 2>/dev/null; echo "@reboot /sbin/swapoff -a") | crontab - || true
-- name: add libseccomp repository             
+    - name: add libseccomp repository             
       become: yes
       become_method: sudo
       command: echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
@@ -133,34 +121,6 @@
       become: yes
       become_method: sudo
       command: mkdir -p /usr/share/keyrings
-        # - name: add libcontainers key
-        #   become: yes
-        #   become_method: sudo
-        #   apt_key:
-        #     url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/Release.key
-          # - name: get libcontainers crio key
-          #   become: yes
-          #   become_method: sudo
-          #   apt_key:
-          #     url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.24/Debian_11/Release.key
-          # - name: get keys from repository
-          #   become: yes
-          #   become_method: sudo
-          #   command: curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/debian-installer/Release.gpg > /tmp/libcontainerKey
-          # - name: dearmor key
-          #   become: yes
-          #   become_method: sudo
-          #   command: gpg /tmp/libcontainerKey --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
-  #  - name: Install libcontainer key
-  #    become: yes
-  #    get_url:
-  #      url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_11/debian-installer/Release.gpg
-  #      dest: /etc/apt/trusted.gpg.d/libcontainer.asc
-  #  - name: Install libcontainer-crio key
-  #    become: yes
-  #    get_url:
-  #      url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.24/Debian_11/Release.gpg
-  #      dest: /etc/apt/trusted.gpg.d/libcontainer-crio.asc
     - name: Curl libcontainer gpg key and dearmor it
       become: yes
       become_method: sudo
